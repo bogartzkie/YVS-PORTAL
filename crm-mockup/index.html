@@ -38,6 +38,7 @@
   --shadow:0 10px 30px rgba(0,0,0,.5); color-scheme:dark}
 
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 var(--f-body)}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--ink)}
@@ -225,6 +226,7 @@ select.inline{border:1px solid var(--line);border-radius:6px;padding:4px 6px;bac
 .field label{font-size:12.5px;font-weight:600}
 .field input,.field select,.field textarea{padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:var(--surface);width:100%}
 .field textarea{min-height:90px;resize:vertical}
+.hint{font-size:12px;color:var(--mute)}
 .field .hint{font-size:12px;color:var(--mute)}
 .field.err input{border-color:var(--bad)}
 .field.err .hint{color:var(--bad)}
@@ -380,6 +382,58 @@ const followups = [
  ['Request updated passport copy from Elena Petrova','PRR-26-0413','2026-10-21','Maria Santos'],
 ];
 
+const DOC_CATS={app:['CV / resume','Passport','National ID','Visa / work permit','Certificate / licence','Medical result','Signed contract','Other'],lead:['Signed contract','Proposal / quotation','Invoice','Company licence','ID of contact','Other'],client:['Signed contract','Invoice','Job order / demand letter','Company licence','ID of contact','Other']};
+const SENSITIVE=['Passport','National ID','Visa / work permit','Medical result','ID of contact'];
+const guessCat=n=>/passport/i.test(n)?'Passport':/licen|prc|certif|haccp|degree/i.test(n)?'Certificate / licence':/cv|resume/i.test(n)?'CV / resume':'Other';
+applicants.forEach(a=>a.docs=a.docs.map(d=>({name:d[0],ext:d[1],size:d[2],cat:guessCat(d[0]),date:a.date,by:a.rec})));
+appById_('PRR-26-0418').docs.push({name:'Reyes_Joanna_Passport.pdf',ext:'pdf',size:'640 KB',cat:'Passport',meta:'P7741203A · expires 14 Mar 2031',date:'2026-10-22',by:'Website form'});
+appById_('PRR-26-0412').docs.push({name:'Arjun_Mehta_Passport.jpg',ext:'jpg',size:'1.8 MB',cat:'Passport',meta:'Z4410982 · expires 02 Jan 2027',warn:'Expires in 71 days. Ask for renewal before visa processing.',date:'2026-10-12',by:'James Cruz'},{name:'Mehta_Offer_GulfStar_SIGNED.pdf',ext:'pdf',size:'210 KB',cat:'Signed contract',meta:'Employment offer · signed 21 Oct 2026',date:'2026-10-21',by:'James Cruz'});
+appById_('PRR-26-0410').docs.push({name:'Nguyen_Employment_Contract_SIGNED.pdf',ext:'pdf',size:'300 KB',cat:'Signed contract',meta:'Harbor Logistics · signed 12 Oct 2026',date:'2026-10-12',by:'James Cruz'},{name:'Nguyen_Medical_Fit.pdf',ext:'pdf',size:'450 KB',cat:'Medical result',meta:'Fit to work · 09 Oct 2026',date:'2026-10-09',by:'James Cruz'});
+function appById_(id){return applicants.find(a=>a.id===id)}
+const C_DOCS={'CL-014':[
+  {name:'AlNoor_Recruitment_Agreement_SIGNED.pdf',ext:'pdf',size:'1.1 MB',cat:'Signed contract',meta:'Signed 05 Jan 2026 · valid to 04 Jan 2027 · fee 1 month salary',date:'2026-01-05',by:'Maria Santos'},
+  {name:'INV-2026-0141.pdf',ext:'pdf',size:'90 KB',cat:'Invoice',inv:{no:'INV-2026-0141',amount:'AED 2,400',issued:'2026-10-05',due:'2026-11-04',status:'Unpaid'},date:'2026-10-05',by:'Maria Santos'},
+  {name:'INV-2026-0118.pdf',ext:'pdf',size:'88 KB',cat:'Invoice',inv:{no:'INV-2026-0118',amount:'AED 7,200',issued:'2026-08-20',due:'2026-09-19',status:'Overdue'},date:'2026-08-20',by:'Maria Santos'},
+  {name:'INV-2026-0097.pdf',ext:'pdf',size:'87 KB',cat:'Invoice',inv:{no:'INV-2026-0097',amount:'AED 4,800',issued:'2026-06-11',due:'2026-07-11',status:'Paid'},date:'2026-06-11',by:'Maria Santos'},
+  {name:'AlNoor_Demand_Letter_Oct.pdf',ext:'pdf',size:'240 KB',cat:'Job order / demand letter',meta:'Front desk x 6, housekeeping x 12, chef de partie x 3',date:'2026-10-01',by:'Maria Santos'}],
+ 'CL-011':[
+  {name:'GulfStar_Service_Agreement_SIGNED.pdf',ext:'pdf',size:'980 KB',cat:'Signed contract',meta:'Signed 02 Sep 2026 · valid to 01 Sep 2027',date:'2026-09-02',by:'Maria Santos'},
+  {name:'INV-2026-0139.pdf',ext:'pdf',size:'91 KB',cat:'Invoice',inv:{no:'INV-2026-0139',amount:'QAR 9,500',issued:'2026-10-01',due:'2026-10-31',status:'Unpaid'},date:'2026-10-01',by:'James Cruz'}]};
+const INV_TONE={Paid:'good',Unpaid:'warn',Overdue:'bad',Draft:'neutral'};
+const docList=docs=>docs.map(d=>`<div class="doc"><span class="ext ${d.ext}">${d.ext.toUpperCase()}</span><div style="flex:1;min-width:0;overflow-wrap:anywhere"><span class="chip">${esc(d.cat)}</span>${SENSITIVE.includes(d.cat)?'<span class="flag" title="Only admins and the assigned staff can open this. Every view is logged.">Restricted</span> ':''}${esc(d.name)}${d.meta?`<br><small>${esc(d.meta)}</small>`:''}${d.inv?`<br><small>${esc(d.inv.no)} · ${esc(d.inv.amount)} · due ${fmtDate(d.inv.due)}</small> ${pill(d.inv.status,INV_TONE)}`:''}${d.warn?`<br><small style="color:var(--warn)">${esc(d.warn)}</small>`:''}<br><small class="muted">${d.size} · ${fmtDate(d.date)} · ${esc(d.by)}</small></div><button class="btn sm" data-act="preview">View</button></div>`).join('')||'<div class="muted">No documents yet.</div>';
+function mUpload(kind,id){
+  state.up={kind,id};
+  modal('Upload document',`<div class="form">
+   <div class="field"><label for="u-cat">Document type</label><select id="u-cat">${opts(DOC_CATS[kind],kind==='app'?'Passport':'Signed contract')}</select></div>
+   <div class="field"><label for="u-file">File</label><input type="file" id="u-file"><span class="hint">PDF, DOCX, JPG or PNG up to 20 MB</span></div>
+   <div class="field" data-for="id"><label for="u-no">Document number</label><input id="u-no" value="P5520918B"></div>
+   <div class="field" data-for="id"><label for="u-exp">Expiry date</label><input type="date" id="u-exp" value="2032-05-18"><span class="hint">You get a reminder 90 days before expiry</span></div>
+   <div class="field" data-for="contract"><label for="u-signed">Date signed</label><input type="date" id="u-signed" value="2026-10-23"></div>
+   <div class="field" data-for="contract"><label for="u-valid">Valid until</label><input type="date" id="u-valid" value="2027-10-22"></div>
+   <div class="field" data-for="inv"><label for="u-invno">Invoice number</label><input id="u-invno" value="INV-2026-0144"></div>
+   <div class="field" data-for="inv"><label for="u-amt">Amount</label><input id="u-amt" value="AED 3,000"></div>
+   <div class="field" data-for="inv"><label for="u-due">Due date</label><input type="date" id="u-due" value="2026-11-22"></div>
+   <div class="field" data-for="inv"><label for="u-inv-st">Payment status</label><select id="u-inv-st">${opts(Object.keys(INV_TONE),'Unpaid')}</select></div>
+   <div class="field full"><label for="u-note">Note</label><input id="u-note" placeholder="Optional"></div></div>
+   <div class="notice info" id="u-sens" hidden>Passports, IDs and medical results are restricted. Only admins and the assigned staff can open them, and every view is recorded in the audit history.</div>`,
+   `<button class="btn" data-close>Cancel</button><button class="btn primary" data-act="do-upload">Upload</button>`);
+  const sync=()=>{const c=$('#u-cat').value,g=/Passport|ID|Visa/.test(c)?'id':c==='Signed contract'?'contract':c==='Invoice'?'inv':'';document.querySelectorAll('[data-for]').forEach(f=>f.hidden=f.dataset.for!==g);$('#u-sens').hidden=!SENSITIVE.includes(c)};
+  $('#u-cat').onchange=sync;sync();
+}
+function doUpload(){
+  const {kind,id}=state.up,c=$('#u-cat').value,f=$('#u-file').files[0];
+  const ext=f?((f.name.split('.').pop()||'pdf').toLowerCase()):'pdf';
+  const d={name:f?f.name:c.replace(/\W+/g,'_')+'_2026-10-23.pdf',ext:['docx','jpg'].includes(ext)?ext:ext==='png'?'jpg':'pdf',size:f?Math.max(1,Math.round(f.size/1024))+' KB':'250 KB',cat:c,date:'2026-10-23',by:'Maria Santos'};
+  if(/Passport|ID|Visa/.test(c))d.meta=`${$('#u-no').value} · expires ${fmtDate($('#u-exp').value)}`;
+  if(c==='Signed contract')d.meta=`Signed ${fmtDate($('#u-signed').value)} · valid to ${fmtDate($('#u-valid').value)}`;
+  if(c==='Invoice')d.inv={no:$('#u-invno').value,amount:$('#u-amt').value,issued:'2026-10-23',due:$('#u-due').value,status:$('#u-inv-st').value};
+  if($('#u-note').value)d.meta=(d.meta?d.meta+' · ':'')+$('#u-note').value;
+  if(kind==='app'){appById(id).docs.unshift(d);log(id,`Document uploaded: ${c} (${d.name})`)}
+  if(kind==='lead'){const l=leadById(id);l.docs.unshift(d);addEntry(l,'system',`Document uploaded: ${c} (${d.name})`)}
+  if(kind==='client'){(C_DOCS[id] ||= []).unshift(d)}
+  closeModal();toast(`${c} uploaded.`);render();
+}
+
 const state = {view:'dashboard', app:null, client:null, tab:'overview', sort:['date',-1], filters:{q:'',status:'',pos:'',source:'',rec:''}, range:30, subFilter:{status:'',client:''}, lf:{q:'',status:'',owner:'',source:'',unnamed:false}, lead:null, showArchived:false};
 
 /* helpers */
@@ -503,8 +557,8 @@ function vProfile(){
      <div class="field full"><label for="p-notes">Internal notes <span class="muted">(staff only, never sent to clients)</span></label><textarea id="p-notes">${esc(a.notes)}</textarea><div><button class="btn sm" data-act="save-notes">Save notes</button></div></div></div>`;
   if(state.tab==='subs') body = `<div class="panel-b"><div class="notice info">Each client submission has its own status. The overall status above (<b>${esc(a.status)}</b>) is tracked separately.</div></div>
      <div class="table-wrap"><table><thead><tr><th>Client</th><th>Position</th><th>Submitted</th><th>Recruiter</th><th>Client status</th></tr></thead><tbody>${mySubs.map(s=>`<tr><td><a href="#" data-client="${s.client}">${esc(clientById(s.client).name)}</a></td><td>${esc(s.pos)}</td><td class="num">${fmtDate(s.date)}</td><td>${esc(s.rec)}</td><td><select class="inline" data-sub="${s.id}">${opts(SUB_STATUS,s.status)}</select></td></tr>`).join('')||'<tr><td colspan="5" class="muted">Not submitted to any client yet.</td></tr>'}</tbody></table></div>`;
-  if(state.tab==='docs') body = `<div class="panel-b" style="display:flex;flex-direction:column;gap:10px">${a.docs.map(([n,e,s])=>`<div class="doc"><span class="ext ${e}">${e.toUpperCase()}</span><div style="flex:1;min-width:0;overflow-wrap:anywhere">${esc(n)}<br><small class="muted">${s} · uploaded ${fmtDate(a.date)} · encrypted at rest</small></div><button class="btn sm" data-act="preview">View</button></div>`).join('')}
-     <label class="drop" for="doc-up">Drop CV, passport, licences or certificates here, or click to browse<br><small>PDF, DOCX, JPG up to 20 MB</small></label><input type="file" id="doc-up" multiple hidden></div>`;
+  if(state.tab==='docs') body = `<div class="panel-b" style="display:flex;flex-direction:column;gap:10px">${docList(a.docs)}
+     <button class="drop" data-act="upload" data-kind="app" data-uid="${a.id}" style="width:100%;background:none">Upload CV, passport, ID, visa, certificates, medical results or signed contract<br><small>PDF, DOCX, JPG or PNG up to 20 MB · encrypted at rest</small></button></div>`;
   if(state.tab==='emails') body = `<div class="table-wrap"><table><thead><tr><th>Subject</th><th>To</th><th>Sent</th><th>Delivery</th></tr></thead><tbody>${myMails.map(e=>`<tr><td>${esc(e.subject)}</td><td>${esc(e.to)}</td><td class="num">${e.date}</td><td>${pill(e.status,{Delivered:'good',Opened:'info',Bounced:'bad',Queued:'neutral'})}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">No emails yet.</td></tr>'}</tbody></table></div>`;
   if(state.tab==='activity') body = `<div class="timeline">${acts.map(([t,x,by])=>`<div class="tl"><i></i><div>${esc(x)}<br><small>${t} · ${esc(by)}</small></div></div>`).join('')}</div>`;
   return `
@@ -549,6 +603,9 @@ function vClient(){
     <div class="table-wrap"><table><thead><tr><th>Candidate</th><th>Position</th><th>Submitted</th><th>Recruiter</th><th>Status</th></tr></thead><tbody>${cs.map(s=>{const a=appById(s.app);return `<tr class="click" data-open="${a.id}"><td><b>${esc(a.name)}</b><br><small class="mono muted">${a.id}</small></td><td>${esc(s.pos)}</td><td class="num">${fmtDate(s.date)}</td><td>${esc(s.rec)}</td><td>${pill(s.status,SUB_TONE)}</td></tr>`}).join('')||'<tr><td colspan="5" class="muted">No candidates submitted yet.</td></tr>'}</tbody></table></div></section>
    <div class="grid" style="align-content:start">
     <section class="panel"><div class="panel-h"><h2>Contact</h2></div><div class="panel-b"><dl class="kv"><dt>Contact person</dt><dd>${esc(c.contact)}</dd><dt>Email</dt><dd>${esc(c.email)}</dd><dt>Phone</dt><dd>${esc(c.phone)}</dd><dt>Agreement</dt><dd>Fee 1 month salary · 90-day replacement</dd></dl></div></section>
+    <section class="panel"><div class="panel-h"><h2>Contracts, invoices &amp; documents</h2><button class="btn sm" data-act="upload" data-kind="client" data-uid="${c.id}">+ Upload</button></div>
+     ${(()=>{const inv=(C_DOCS[c.id]||[]).filter(d=>d.inv);const open=inv.filter(d=>d.inv.status!=='Paid');return inv.length?`<div class="panel-b" style="display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--line)"><span class="pill t-neutral">${inv.length} invoices</span>${open.length?`<span class="pill t-warn">${open.length} unpaid</span>`:''}${inv.some(d=>d.inv.status==='Overdue')?'<span class="pill t-bad">Overdue payment</span>':''}</div>`:''})()}
+     <div class="panel-b" style="display:flex;flex-direction:column;gap:8px">${docList(C_DOCS[c.id]||[])}</div></section>
     <section class="panel"><div class="panel-h"><h2>Requested vacancies</h2><button class="btn sm" data-act="add-vac">+ Vacancy</button></div><div class="list">${c.vacancies.map(v=>`<div class="li"><div class="grow">${esc(v[0])}</div><span class="mono">${cs.filter(s=>s.pos===v[0]&&s.status==='Hired / Placed').length} / ${v[1]} filled</span></div>`).join('')||'<div class="li muted">None</div>'}</div></section>
    </div></div>`;
 }
@@ -605,6 +662,7 @@ function vSettings(){
       <tr id="failed-row"><td class="num">22 Oct 09:15</td><td>Ahmed Siddiqui</td><td>${pill('Failed: CV upload timeout',{x:''}).replace('t-neutral','t-bad')}</td><td><button class="btn sm" data-act="retry">Retry</button></td></tr>
      </tbody></table></div><small class="muted">Failed submissions keep the raw form data for 30 days so nothing is lost.</small></div></section>
    <section class="panel"><div class="panel-h"><h2>Email account</h2><span class="pill t-good">Verified</span></div><div class="panel-b"><dl class="kv"><dt>Provider</dt><dd><select class="inline"><option>Microsoft 365</option><option>Google Workspace</option><option>SMTP</option></select></dd><dt>Send as</dt><dd>recruitment@prestige-recruitment-royale.com</dd><dt>Tracking</dt><dd>Delivery and opens where supported</dd><dt>SPF / DKIM</dt><dd>${pill('Pass',{Pass:'good'})}</dd></dl></div></section>
+   <section class="panel"><div class="panel-h"><h2>Lead statuses</h2><button class="btn sm" data-act="add-status">+ Add status</button></div><div class="list">${LEAD_STATUS.map(x=>`<div class="li"><div style="width:150px;flex:none">${pill(x,LEAD_TONE)}</div><div class="grow"><small>${esc(LEAD_HELP[x])}</small></div></div>`).join('')}</div><div class="panel-b"><small class="muted">Admins can rename, recolour, reorder or add statuses. Document types are editable the same way.</small></div></section>
    <section class="panel"><div class="panel-h"><h2>WhatsApp Business</h2><span class="pill t-good">Connected</span></div><div class="panel-b"><dl class="kv"><dt>Number</dt><dd>+971 4 555 0142 (Prestige Recruitment Royale)</dd><dt>Provider</dt><dd><select class="inline"><option>WhatsApp Cloud API (Meta)</option><option>Twilio</option><option>360dialog</option></select></dd><dt>Templates</dt><dd>${Object.keys(WA_TPL).length} approved by Meta</dd><dt>Replies</dt><dd>Saved to the matching lead or applicant by phone number</dd><dt>Unknown numbers</dt><dd>Create a new client lead</dd></dl></div></section>
    <section class="panel"><div class="panel-h"><h2>Data protection</h2></div><div class="panel-b"><dl class="kv"><dt>Transport</dt><dd>HTTPS / TLS 1.3 only</dd><dt>Documents</dt><dd>Encrypted at rest, signed short-lived download links</dd><dt>Backups</dt><dd>Daily at 02:00 UTC · last ${pill('Success 23 Oct 02:00',{x:''}).replace('t-neutral','t-good')}</dd><dt>Retention</dt><dd><select class="inline"><option>Anonymise inactive applicants after 24 months</option><option>12 months</option><option>36 months</option></select></dd><dt>Consent</dt><dd>Captured on website form, stored with record</dd><dt>Requests</dt><dd>Export or erase a candidate's data on request</dd></dl></div></section>
    <section class="panel"><div class="panel-h"><h2>Audit history</h2><button class="btn sm" data-act="export">Export</button></div><div class="timeline">${[['23 Oct 08:44','Maria Santos','Changed role of David Lim: Recruiter to Manager'],['22 Oct 16:10','James Cruz','Downloaded CV of Arjun Mehta (PRR-26-0412)'],['22 Oct 11:31','Aisha Rahman','Merged PRR-26-0402 into PRR-26-0399'],['21 Oct 09:02','System','Anonymised 14 records past retention period']].map(([t,by,x])=>`<div class="tl"><i></i><div>${x}<br><small>${t} · ${by}</small></div></div>`).join('')}</div></section>
@@ -642,7 +700,7 @@ function saveAdd(){
   const name=$('#n-name').value.trim(), email=$('#n-email').value.trim(), phone=$('#n-phone').value.trim();
   if(!name||!email||!phone){toast('Name, email and phone are required.');return}
   const n=Math.max(...applicants.map(a=>+a.id.slice(-4)))+1;
-  const a={id:'PRR-26-0'+n,name,email,phone,loc:$('#n-loc').value,pos:$('#n-pos').value||'Unspecified',skills:$('#n-skills').value.split(',').map(s=>s.trim()).filter(Boolean),exp:$('#n-exp').value,source:$('#n-src').value,date:'2026-10-23',status:'New Applicant',rec:$('#n-rec').value,notes:$('#n-notes').value,docs:$('#n-cv').files[0]?[[$('#n-cv').files[0].name,'pdf',Math.round($('#n-cv').files[0].size/1024)+' KB']]:[]};
+  const a={id:'PRR-26-0'+n,name,email,phone,loc:$('#n-loc').value,pos:$('#n-pos').value||'Unspecified',skills:$('#n-skills').value.split(',').map(s=>s.trim()).filter(Boolean),exp:$('#n-exp').value,source:$('#n-src').value,date:'2026-10-23',status:'New Applicant',rec:$('#n-rec').value,notes:$('#n-notes').value,docs:$('#n-cv').files[0]?[{name:$('#n-cv').files[0].name,ext:'pdf',size:Math.round($('#n-cv').files[0].size/1024)+' KB',cat:'CV / resume',date:'2026-10-23',by:'Maria Santos'}]:[]};
   applicants.unshift(a); log(a.id,`Registered manually (${a.source})`); closeModal();
   toast(dupOf(a)?`Saved ${a.id}. Flagged as possible duplicate.`:`Saved ${a.id}.`); go('profile',{app:a.id,tab:'overview'});
 }
@@ -734,13 +792,14 @@ function drawer(){
 }
 
 /* ---------- Client leads ---------- */
-const LEAD_STATUS=['New lead','No answer','Call back later','Messaged','Emailed','Interested','Needs received','Converted to client','Not interested','Invalid number'];
-const LEAD_TONE={'New lead':'info','No answer':'warn','Call back later':'warn','Messaged':'neutral','Emailed':'neutral','Interested':'accent','Needs received':'accent','Converted to client':'good','Not interested':'bad','Invalid number':'bad'};
+let LEAD_STATUS=['New lead','Contacted','Not answering','WhatsApp only','Call back later','Hot lead','Needs received','Converted to client','Not interested','Junk lead'];
+const LEAD_TONE={'New lead':'info','Contacted':'neutral','Not answering':'warn','WhatsApp only':'good','Call back later':'warn','Hot lead':'accent','Needs received':'accent','Converted to client':'good','Not interested':'bad','Junk lead':'bad'};
+const LEAD_HELP={'New lead':'Imported or registered, nobody has reached out yet','Contacted':'Reached by call, WhatsApp or email; no clear interest yet','Not answering':'Called, no pick-up. Stays in the call queue','WhatsApp only':'Does not take calls; contact by WhatsApp message only. Kept out of the call queue','Call back later':'Spoke briefly; asked to be called at another time','Hot lead':'Interested and likely to hire soon','Needs received':'Told us the positions and headcount they need','Converted to client':'Became a client company','Not interested':'Said no for now','Junk lead':'Wrong number, spam, duplicate or not an employer'};
 const LEAD_SOURCES=['Excel import','Website (Clients page)','Manual entry','Referral'];
-const OUTCOME={'No answer':'No answer','Spoke, interested':'Interested','Spoke, call back later':'Call back later','Spoke, not interested':'Not interested','Wrong or invalid number':'Invalid number'};
+const OUTCOME={'No answer':'Not answering','Spoke, general enquiry':'Contacted','Spoke, hot lead':'Hot lead','Spoke, call back later':'Call back later','Asked for WhatsApp only':'WhatsApp only','Spoke, not interested':'Not interested','Junk: wrong number or spam':'Junk lead'};
 const KIND={call:['Call','t-info','C'],whatsapp:['WhatsApp sent','t-good','W'],'wa-in':['WhatsApp reply','t-good','W'],email:['Email','t-accent','@'],comment:['Comment','t-neutral','N'],system:['System','t-neutral','S']};
 const WA_TPL={'Introduction':'Hi{name}, this is Maria from Prestige Recruitment Royale. We supply pre-screened nurses, hotel, construction and logistics staff to employers in the GCC and Asia. Which positions are you hiring for at the moment?','After a missed call':'Hi{name}, we tried to call you today from Prestige Recruitment Royale. When is a good time to talk about your staffing needs?','Share candidate profiles':'Hi{name}, as discussed, here are {n} candidate profiles for your review. Let me know which ones you would like to interview.','Follow-up':'Hi{name}, following up on our last conversation. Any update on the positions you mentioned?'};
-const L=(id,name,company,phone,email,country,source,status,owner,next,thread,extra={})=>({id,name,company,phone,email,country,source,status,owner,next,thread,needs:'',headcount:'',picks:[],...extra});
+const L=(id,name,company,phone,email,country,source,status,owner,next,thread,extra={})=>({id,name,company,phone,email,country,source,status,owner,next,thread,needs:'',headcount:'',picks:[],docs:[],...extra});
 let leads=[
  L('LD-1046','Ahmed Al Rashid','Bluewave Facilities Management','+971 55 210 7731','ahmed@bluewavefm.ae','UAE','Excel import','Needs received','Maria Santos','2026-10-24',[
    ['2026-10-23 09:20','Ahmed Al Rashid','wa-in','Thanks Maria. We like Maricel and Liza. Can you send 3 more housekeeping profiles by Monday?'],
@@ -750,20 +809,24 @@ let leads=[
    ['2026-10-14 08:00','System','system','Imported from Leads master sheet, row 87. Sheet remark: "met at Dubai job fair".']],
    {needs:'Housekeeping Attendant x 25\nCleaning Supervisor x 2\nStart: January 2027, Dubai Hills Mall contract\nBudget: AED 2,200 to 2,600 / month + accommodation',headcount:'27',picks:['PRR-26-0409','PRR-26-0405']}),
  L('LD-1047','','','+971 50 418 2290','','UAE','Excel import','New lead','James Cruz','',[['2026-10-23 08:10','System','system','Imported from Leads master sheet, row 412. Number only.']]),
- L('LD-1048','','','+966 55 902 1184','','Saudi Arabia','Excel import','No answer','Aisha Rahman','2026-10-23',[['2026-10-22 11:02','Aisha Rahman','call','No answer. Will try again tomorrow morning.'],['2026-10-14 08:00','System','system','Imported from Leads master sheet, row 213. Number only.']]),
+ L('LD-1048','','','+966 55 902 1184','','Saudi Arabia','Excel import','Not answering','Aisha Rahman','2026-10-23',[['2026-10-22 11:02','Aisha Rahman','call','No answer. Will try again tomorrow morning.'],['2026-10-14 08:00','System','system','Imported from Leads master sheet, row 213. Number only.']]),
  L('LD-1049','Leila','','+974 3312 7740','','Qatar','Excel import','Call back later','Aisha Rahman','2026-10-23',[['2026-10-21 13:15','Aisha Rahman','call','Spoke, call back later. Leila from HR was in a meeting. Call back Friday after 2 pm Doha time. Company name not given yet.'],['2026-10-14 08:00','System','system','Imported from Leads master sheet, row 240. Number only.']]),
- L('LD-1050','Kenneth Lau','Pacific Rim Logistics','+65 9123 4471','kenneth.lau@pacificrim.sg','Singapore','Website (Clients page)','Interested','James Cruz','2026-10-25',[['2026-10-21 10:30','James Cruz','email','Subject: Our fee structure and company profile · Delivered'],['2026-10-21 09:55','James Cruz','comment','Wants 6 forklift operators. Asked for fee structure before committing.'],['2026-10-20 17:40','System','system','Registered through the Clients page form on the website.']],{needs:'Forklift Operator x 6',headcount:'6'}),
- L('LD-1052','','','+971 52 660 1302','','UAE','Excel import','Invalid number','James Cruz','',[['2026-10-21 09:20','James Cruz','call','Wrong or invalid number. Number not in service.'],['2026-10-14 08:00','System','system','Imported from Leads master sheet, row 415.']]),
- L('LD-1053','','Sahara Hotels & Resorts','+971 4 388 1200','','UAE','Excel import','Messaged','Maria Santos','2026-10-24',[['2026-10-22 10:05','Maria Santos','whatsapp','Hi, this is Maria from Prestige Recruitment Royale. Which positions are you hiring for at the moment? · Read ✓✓'],['2026-10-22 10:01','Maria Santos','call','No answer. Reception line, asked for HR, put on hold then dropped.'],['2026-10-14 08:00','System','system','Imported from Leads master sheet, row 96.']]),
+ L('LD-1050','Kenneth Lau','Pacific Rim Logistics','+65 9123 4471','kenneth.lau@pacificrim.sg','Singapore','Website (Clients page)','Hot lead','James Cruz','2026-10-25',[['2026-10-21 10:30','James Cruz','email','Subject: Our fee structure and company profile · Delivered'],['2026-10-21 09:55','James Cruz','comment','Wants 6 forklift operators. Asked for fee structure before committing.'],['2026-10-20 17:40','System','system','Registered through the Clients page form on the website.']],{needs:'Forklift Operator x 6',headcount:'6'}),
+ L('LD-1052','','','+971 52 660 1302','','UAE','Excel import','Junk lead','James Cruz','',[['2026-10-21 09:20','James Cruz','call','Junk: wrong number or spam. Number not in service.'],['2026-10-14 08:00','System','system','Imported from Leads master sheet, row 415.']]),
+ L('LD-1053','','Sahara Hotels & Resorts','+971 4 388 1200','','UAE','Excel import','WhatsApp only','Maria Santos','2026-10-24',[['2026-10-22 10:20','Maria Santos','comment','HR asked us to message on WhatsApp only. Please do not call the hotline.'],['2026-10-22 10:05','Maria Santos','whatsapp','Hi, this is Maria from Prestige Recruitment Royale. Which positions are you hiring for at the moment? · Read ✓✓'],['2026-10-22 10:01','Maria Santos','call','No answer. Reception line, asked for HR, put on hold then dropped.'],['2026-10-14 08:00','System','system','Imported from Leads master sheet, row 96.']]),
  L('LD-1054','','','+968 9221 5503','','Oman','Excel import','New lead','Aisha Rahman','',[['2026-10-23 08:10','System','system','Imported from Leads master sheet, row 530. Number only.']]),
  L('LD-1055','','','+974 5501 2283','','Qatar','Excel import','New lead','Maria Santos','',[['2026-10-23 08:10','System','system','Imported from Leads master sheet, row 531. Number only.']]),
  L('LD-1056','Rakesh','BuildRight Contracting','+966 50 311 9820','','Saudi Arabia','Excel import','Not interested','Aisha Rahman','',[['2026-10-19 14:40','Aisha Rahman','call','Spoke, not interested. Using an in-house agency until 2027. Do not call before March 2027.'],['2026-10-14 08:00','System','system','Imported from Leads master sheet, row 301.']]),
  L('LD-1057','Sophie Martin','Azure Clinics','+971 56 774 0912','sophie.martin@azureclinics.ae','UAE','Website (Clients page)','New lead','Aisha Rahman','',[['2026-10-23 07:48','System','system','Registered through the Clients page form. Message: "Looking for 5 DHA-licensed nurses for a new clinic in JLT."']]),
  L('LD-1058','','','+965 6604 1187','','Kuwait','Excel import','New lead','James Cruz','',[['2026-10-23 08:10','System','system','Imported from Leads master sheet, row 532. Number only.']]),
- L('LD-1059','','','+971 55 418 9930','','UAE','Excel import','No answer','James Cruz','2026-10-21',[['2026-10-20 15:10','James Cruz','call','No answer. Second attempt.'],['2026-10-17 11:30','James Cruz','call','No answer.'],['2026-10-14 08:00','System','system','Imported from Leads master sheet, row 418.']]),
+ L('LD-1059','','','+971 55 418 9930','','UAE','Excel import','Not answering','James Cruz','2026-10-21',[['2026-10-20 15:10','James Cruz','call','No answer. Second attempt.'],['2026-10-17 11:30','James Cruz','call','No answer.'],['2026-10-14 08:00','System','system','Imported from Leads master sheet, row 418.']]),
  L('LD-1045','Rajesh Pillai','Gulf Star Construction','+974 4441 2290','r.pillai@gulfstar.qa','Qatar','Referral','Converted to client','Maria Santos','',[['2026-09-02 09:00','System','system','Converted to client CL-011.'],['2026-08-30 12:20','Maria Santos','call','Spoke, interested. Needs civil engineers and electricians for Lusail project.']],{client:'CL-011'}),
 ];
 const leadById=id=>leads.find(l=>l.id===id);
+leads.find(l=>l.id==='LD-1046').docs=[
+ {name:'Bluewave_Trade_Licence_2026.pdf',ext:'pdf',size:'1.4 MB',cat:'Company licence',meta:'Licence no. 784512 · expires 30 Jun 2027',date:'2026-10-22',by:'Maria Santos'},
+ {name:'Prestige_Proposal_Bluewave.pdf',ext:'pdf',size:'380 KB',cat:'Proposal / quotation',meta:'27 staff · fee AED 1,500 per hire',date:'2026-10-22',by:'Maria Santos'},
+ {name:'Ahmed_Al_Rashid_Emirates_ID.jpg',ext:'jpg',size:'820 KB',cat:'ID of contact',meta:'Signatory ID for contract',date:'2026-10-23',by:'Maria Santos'}];
 const NOW=()=>'2026-10-23 '+new Date().toTimeString().slice(0,5);
 const ago=t=>{const d=daysAgo(t.slice(0,10));return d<=0?'Today '+t.slice(11,16):d===1?'Yesterday':d+'d ago'};
 const leadName=l=>l.name?esc(l.name):'<span class="unnamed">Name unknown</span>';
@@ -773,7 +836,7 @@ function addEntry(l,kind,text,by='Maria Santos'){l.thread.unshift([NOW(),by,kind
 function vLeads(){
   const f=state.lf,q=f.q.toLowerCase();
   const list=leads.filter(l=>(!q||[l.name,l.company,l.phone,l.email,l.country,l.id,...l.thread.map(x=>x[3])].join(' ').toLowerCase().includes(q))&&(!f.status||l.status===f.status)&&(!f.owner||l.owner===f.owner)&&(!f.source||l.source===f.source)&&(!f.unnamed||!l.name));
-  const due=leads.filter(l=>l.next&&l.next<='2026-10-23'&&!['Converted to client','Not interested','Invalid number'].includes(l.status));
+  const due=leads.filter(l=>l.next&&l.next<='2026-10-23'&&!['Converted to client','Not interested','Junk lead'].includes(l.status));
   return `<div class="page-head"><div><h1>Client leads</h1><p>Employers from the Leads master sheet and the website Clients page. Call, message and comment on each one until it becomes a client.</p></div>
    <div class="actions"><button class="btn" data-act="import-leads">Import Excel / CSV</button><button class="btn" data-act="add-lead">+ Add lead</button><button class="btn brass" data-act="queue">Start call queue (${queueList().length})</button></div></div>
   <section class="kpis">
@@ -781,7 +844,9 @@ function vLeads(){
    <div class="kpi"><div class="eyebrow">Not yet contacted</div><div class="v">${leads.filter(l=>l.status==='New lead').length}</div><div class="d">Status: New lead</div></div>
    <div class="kpi"><div class="eyebrow">Number only</div><div class="v">${leads.filter(l=>!l.name).length}</div><div class="d">Name still unknown</div></div>
    <div class="kpi"><div class="eyebrow">Follow-ups due</div><div class="v">${due.length}</div><div class="d">Today or overdue</div></div>
-   <div class="kpi"><div class="eyebrow">Interested</div><div class="v">${leads.filter(l=>['Interested','Needs received'].includes(l.status)).length}</div><div class="d">Incl. needs received</div></div>
+   <div class="kpi"><div class="eyebrow">Hot leads</div><div class="v">${leads.filter(l=>['Hot lead','Needs received'].includes(l.status)).length}</div><div class="d">Incl. needs received</div></div>
+   <div class="kpi"><div class="eyebrow">WhatsApp only</div><div class="v">${leads.filter(l=>l.status==='WhatsApp only').length}</div><div class="d">Message, don't call</div></div>
+   <div class="kpi"><div class="eyebrow">Junk</div><div class="v">${leads.filter(l=>l.status==='Junk lead').length}</div><div class="d">Excluded from queue</div></div>
    <div class="kpi"><div class="eyebrow">Converted</div><div class="v">${leads.filter(l=>l.status==='Converted to client').length}</div><div class="d">Now client companies</div></div>
   </section>
   <section class="panel"><div class="toolbar">
@@ -809,7 +874,7 @@ function vLead(){
    <div style="flex:1;min-width:220px"><div class="mono muted">${l.id} · ${esc(l.source)} · ${esc(l.country)}</div>
     <h1><input class="inline-edit" id="l-name" value="${esc(l.name)}" placeholder="Add contact name" aria-label="Contact name"></h1>
     <div class="bignum">${esc(l.phone)}</div></div>
-   <div class="field"><label for="l-status">Lead status</label><select id="l-status" class="inline" style="max-width:none">${opts(LEAD_STATUS,l.status)}</select></div>
+   <div class="field"><label for="l-status">Lead status</label><select id="l-status" class="inline" style="max-width:none">${opts(LEAD_STATUS,l.status)}</select><span class="hint" style="max-width:220px">${esc(LEAD_HELP[l.status]||'')}</span></div>
    <div class="actions"><button class="btn primary" data-act="call" data-lid="${l.id}">Log call</button><button class="btn" data-act="wa" data-lid="${l.id}">WhatsApp</button><button class="btn" data-act="lead-mail" data-lid="${l.id}">Email</button>${l.client?'':`<button class="btn brass" data-act="convert">Convert to client</button>`}</div>
   </div></section>
   <div class="grid g-main">
@@ -823,6 +888,7 @@ function vLead(){
      <dt>Email</dt><dd><input class="inline-edit" id="l-email" value="${esc(l.email)}" placeholder="Add email"></dd>
      <dt>Assigned to</dt><dd><select class="inline" id="l-owner">${opts(RECRUITERS,l.owner)}</select></dd>
      <dt>Next follow-up</dt><dd><input type="date" class="inline-edit" id="l-next" value="${l.next}"></dd></dl></div></section>
+    <section class="panel"><div class="panel-h"><h2>Documents</h2><button class="btn sm" data-act="upload" data-kind="lead" data-uid="${l.id}">+ Upload</button></div><div class="panel-b" style="display:flex;flex-direction:column;gap:8px">${docList(l.docs)}</div></section>
     <section class="panel"><div class="panel-h"><h2>What they need</h2><button class="btn sm" data-act="save-needs">Save</button></div><div class="panel-b" style="display:flex;flex-direction:column;gap:10px">
      <div class="field"><label for="l-needs">Positions and requirements</label><textarea id="l-needs" placeholder="e.g. Housekeeping Attendant x 25">${esc(l.needs)}</textarea></div>
      <div class="field"><label for="l-head">Total headcount</label><input id="l-head" value="${esc(l.headcount)}" inputmode="numeric"></div></div></section>
@@ -831,7 +897,7 @@ function vLead(){
      <div class="panel-b" style="display:flex;gap:8px;border-top:1px solid var(--line)"><select class="inline" id="pick-sel" style="flex:1;max-width:none" aria-label="Candidate">${avail.map(a=>`<option value="${a.id}">${esc(a.name)} · ${esc(a.pos)}</option>`).join('')}</select><button class="btn sm" data-act="add-pick">Add</button></div></section>
    </div></div>`;
 }
-function queueList(){const rank={'Call back later':0,'No answer':1,'New lead':2};return leads.filter(l=>l.status in rank&&(!l.next||l.next<='2026-10-23')).sort((a,b)=>rank[a.status]-rank[b.status]).map(l=>l.id)}
+function queueList(){const rank={'Call back later':0,'Not answering':1,'New lead':2};return leads.filter(l=>l.status in rank&&(!l.next||l.next<='2026-10-23')).sort((a,b)=>rank[a.status]-rank[b.status]).map(l=>l.id)}
 function startQueue(){state.queue=queueList();state.qi=0;if(!state.queue.length)return toast('Nobody to call right now.');mCall(state.queue[0],true)}
 function nextInQueue(){render();state.qi++;if(state.qi>=state.queue.length){closeModal();toast(`Queue finished. ${state.queue.length} leads worked.`)}else mCall(state.queue[state.qi],true)}
 function mCall(lid,queue=false){
@@ -839,6 +905,7 @@ function mCall(lid,queue=false){
   modal(queue?`Call queue · ${state.qi+1} of ${state.queue.length}`:'Log a call',`
    <div class="profile-head"><div style="min-width:0"><div class="mono muted">${l.id} · ${esc(l.country)} · ${esc(l.owner)}</div><div class="bignum">${esc(l.phone)}</div><div>${leadName(l)}${l.company?' · '+esc(l.company):''}</div></div>
     <div class="actions" style="margin-left:auto"><button class="btn sm" data-act="copy" data-copy="${esc(l.phone)}">Copy number</button><button class="btn sm" data-act="wa" data-lid="${l.id}">WhatsApp instead</button></div></div>
+   ${l.status==='WhatsApp only'?'<div class="notice bad">This lead asked for WhatsApp messages only. Send a WhatsApp instead of calling.</div>':''}
    ${last?`<div class="notice info">Last contact: ${esc(last[3])} (${esc(last[1])}, ${ago(last[0])})</div>`:`<div class="notice info">First call. Ask for the contact's name, the company, and which roles they hire for.</div>`}
    <div class="eyebrow">Outcome</div><div class="outcomes">${Object.keys(OUTCOME).map(o=>`<button class="btn" data-act="outcome" data-o="${o}" aria-pressed="false">${o}</button>`).join('')}</div>
    <div class="form"><div class="field"><label for="c-name">Contact name</label><input id="c-name" value="${esc(l.name)}" placeholder="If you got it"></div><div class="field"><label for="c-company">Company</label><input id="c-company" value="${esc(l.company)}" placeholder="If you got it"></div>
@@ -859,14 +926,14 @@ function saveCall(){
 function mWa(lid){
   state.waLead=lid;const l=leadById(lid);
   modal('Send WhatsApp message',`<div class="notice info">Sent from the company WhatsApp Business number +971 4 555 0142. Replies appear in this lead's comments automatically.</div>
-   <div class="form"><div class="field"><label>To</label><input value="${esc(l.phone)}${l.name?' · '+esc(l.name):''}" readonly></div><div class="field"><label for="wa-tpl">Approved template</label><select id="wa-tpl">${opts(Object.keys(WA_TPL),l.picks.length?'Share candidate profiles':l.status==='No answer'?'After a missed call':'Introduction')}</select></div>
+   <div class="form"><div class="field"><label>To</label><input value="${esc(l.phone)}${l.name?' · '+esc(l.name):''}" readonly></div><div class="field"><label for="wa-tpl">Approved template</label><select id="wa-tpl">${opts(Object.keys(WA_TPL),l.picks.length?'Share candidate profiles':l.status==='Not answering'?'After a missed call':'Introduction')}</select></div>
    <div class="field full"><label for="wa-text">Message</label><textarea id="wa-text" style="min-height:130px"></textarea></div>
    ${l.picks.length?`<div class="field full"><label><input type="checkbox" id="wa-cv" checked> Attach CVs of ${l.picks.length} picked candidates</label></div>`:''}</div>`,
    `<button class="btn" data-close>Cancel</button><button class="btn primary" data-act="send-wa">Send on WhatsApp</button>`);
   const fill=()=>$('#wa-text').value=WA_TPL[$('#wa-tpl').value].replace('{name}',l.name?' '+l.name:'').replace('{n}',l.picks.length||3);
   $('#wa-tpl').onchange=fill;fill();
 }
-function sendWa(){const l=leadById(state.waLead);addEntry(l,'whatsapp',$('#wa-text').value+($('#wa-cv')?.checked?` [${l.picks.length} CVs attached]`:'')+' · Delivered ✓✓');if(['New lead','No answer','Call back later'].includes(l.status))l.status='Messaged';closeModal();toast('WhatsApp message sent and saved to the lead.');render()}
+function sendWa(){const l=leadById(state.waLead);addEntry(l,'whatsapp',$('#wa-text').value+($('#wa-cv')?.checked?` [${l.picks.length} CVs attached]`:'')+' · Delivered ✓✓');if(['New lead','Not answering','Call back later'].includes(l.status))l.status='Contacted';closeModal();toast('WhatsApp message sent and saved to the lead.');render()}
 function mLeadMail(lid){
   state.mailLead=lid;const l=leadById(lid);
   modal('Email lead',`<div class="form"><div class="field full" id="w-lm"><label for="lm-to">To</label><input id="lm-to" type="email" value="${esc(l.email)}" placeholder="name@company.com"><span class="hint">${l.email?'From recruitment@prestige-recruitment-royale.com':'No email on file. Whatever you enter is saved to the lead.'}</span></div>
@@ -875,7 +942,7 @@ function mLeadMail(lid){
    <div class="field full"><label><input type="checkbox" id="lm-prof" checked> Attach company profile (PDF)</label></div></div>`,
    `<button class="btn" data-close>Cancel</button><button class="btn primary" data-act="send-lead-mail">Send email</button>`);
 }
-function sendLeadMail(){const l=leadById(state.mailLead),to=$('#lm-to').value.trim();if(!/^\S+@\S+\.\S+$/.test(to)){$('#w-lm').classList.add('err');$('#w-lm .hint').textContent='Enter a valid email address.';return}l.email=to;addEntry(l,'email',`Subject: ${$('#lm-sub').value} · Delivered`);if(['New lead','No answer'].includes(l.status))l.status='Emailed';closeModal();toast(`Email sent to ${to}.`);render()}
+function sendLeadMail(){const l=leadById(state.mailLead),to=$('#lm-to').value.trim();if(!/^\S+@\S+\.\S+$/.test(to)){$('#w-lm').classList.add('err');$('#w-lm .hint').textContent='Enter a valid email address.';return}l.email=to;addEntry(l,'email',`Subject: ${$('#lm-sub').value} · Delivered`);if(['New lead','Not answering'].includes(l.status))l.status='Contacted';closeModal();toast(`Email sent to ${to}.`);render()}
 function mImportLeads(){
   const rows=[['+971 50 771 4420','','','','ok'],['0501234567','Hassan','','called before, no answer','fix'],['+966 54 220 9917','','Al Majd Catering','','ok'],['+971 55 210 7731','Ahmed','Bluewave','','dup'],['+974 3390 112','','','','bad'],['+968 9550 3381','Mr. Salim','Oasis FM','wants cleaners','ok']];
   modal('Import client leads',`<label class="drop" for="li-file"><b>Leads master sheet.xlsx</b> loaded · 1,284 rows<br><small>Drop another .xlsx or .csv to replace</small></label><input type="file" id="li-file" accept=".csv,.xlsx" hidden>
@@ -915,7 +982,7 @@ function convertLead(){
   const l=leadById(state.lead);if(!l.company)return toast('Add the company name before converting.');
   const vac=l.needs.split('\n').map(x=>x.match(/^(.+?)\s*[x×]\s*(\d+)/i)).filter(Boolean).map(m=>[m[1].trim(),+m[2]]);
   const c={id:'CL-0'+(Math.max(...clients.map(c=>+c.id.slice(-2)))+1),name:l.company,industry:'To confirm',city:l.country,contact:l.name||'To confirm',email:l.email,phone:l.phone,archived:false,vacancies:vac};
-  clients.unshift(c);l.client=c.id;l.status='Converted to client';addEntry(l,'system',`Converted to client ${c.id}. ${vac.length} vacancies copied from needs.`,'System');
+  clients.unshift(c);C_DOCS[c.id]=[...l.docs];l.client=c.id;l.status='Converted to client';addEntry(l,'system',`Converted to client ${c.id}. ${vac.length} vacancies copied from needs.`,'System');
   toast(`${c.name} is now a client.`);go('client',{client:c.id});
 }
 
@@ -938,7 +1005,6 @@ function bindView(){
   on('#show-arch','onchange',e=>{state.showArchived=e.target.checked;render()});
   on('#p-status','onchange',e=>{const a=appById(state.app);log(a.id,`Status changed: ${a.status} to ${e.target.value}`);a.status=e.target.value;toast('Overall status updated.');render()});
   on('#p-rec','onchange',e=>{const a=appById(state.app);log(a.id,`Reassigned: ${a.rec} to ${e.target.value}`);a.rec=e.target.value;toast('Recruiter reassigned.')});
-  on('#doc-up','onchange',e=>{const a=appById(state.app);[...e.target.files].forEach(f=>{const ext=(f.name.split('.').pop()||'pdf').toLowerCase();a.docs.push([f.name,['docx','jpg'].includes(ext)?ext:'pdf',Math.max(1,Math.round(f.size/1024))+' KB']);log(a.id,`Document uploaded: ${f.name}`)});toast('Document attached.');render()});
   document.querySelectorAll('[data-col]').forEach(col=>{
     col.ondragover=e=>{e.preventDefault();col.classList.add('over')};col.ondragleave=()=>col.classList.remove('over');
     col.ondrop=e=>{e.preventDefault();const a=appById(e.dataTransfer.getData('text'));if(a&&a.status!==col.dataset.col){log(a.id,`Status changed: ${a.status} to ${col.dataset.col}`);a.status=col.dataset.col;toast(`${a.name} moved to ${a.status}.`)}render()};});
@@ -963,12 +1029,13 @@ document.addEventListener('click',e=>{
   if(t.dataset.tab){state.tab=t.dataset.tab;return render()}
   if(t.dataset.sort){state.sort=[t.dataset.sort,state.sort[0]===t.dataset.sort?-state.sort[1]:1];return render()}
   const act=t.dataset.act;
-  ({'import-leads':mImportLeads,'do-import-leads':doImportLeads,'add-lead':mAddLead,'save-lead':saveLead,queue:startQueue,
+  ({upload:()=>mUpload(t.dataset.kind,t.dataset.uid),'do-upload':doUpload,'add-status':()=>toast('New status added to the list (mockup).'),
+    'import-leads':mImportLeads,'do-import-leads':doImportLeads,'add-lead':mAddLead,'save-lead':saveLead,queue:startQueue,
     call:()=>mCall(t.dataset.lid),wa:()=>mWa(t.dataset.lid),'lead-mail':()=>mLeadMail(t.dataset.lid),'send-wa':sendWa,'send-lead-mail':sendLeadMail,
     outcome:()=>document.querySelectorAll('[data-act="outcome"]').forEach(b=>b.setAttribute('aria-pressed',b===t)),'save-call':saveCall,skip:nextInQueue,convert:convertLead,
     copy:()=>{try{navigator.clipboard.writeText(t.dataset.copy).then(()=>toast('Number copied.'),()=>toast('Copy blocked. Select the number instead.'))}catch(_){toast('Copy blocked. Select the number instead.')}},
     post:()=>{const l=leadById(state.lead),x=$('#cm-text').value.trim();if(!x)return toast('Write a comment first.');addEntry(l,$('#cm-kind').value,x);toast('Comment posted.');render()},
-    'save-needs':()=>{const l=leadById(state.lead);l.needs=$('#l-needs').value;l.headcount=$('#l-head').value;if(l.needs&&['New lead','Interested','Messaged','Emailed','Call back later'].includes(l.status))l.status='Needs received';addEntry(l,'comment','Needs updated:\n'+l.needs);toast('Needs saved.');render()},
+    'save-needs':()=>{const l=leadById(state.lead);l.needs=$('#l-needs').value;l.headcount=$('#l-head').value;if(l.needs&&['New lead','Contacted','Hot lead','WhatsApp only','Call back later'].includes(l.status))l.status='Needs received';addEntry(l,'comment','Needs updated:\n'+l.needs);toast('Needs saved.');render()},
     'add-pick':()=>{const l=leadById(state.lead),id=$('#pick-sel').value;if(!id)return;l.picks.push(id);addEntry(l,'comment',`Client picked ${appById(id).name} (${id}).`);toast('Candidate added to client picks.');render()},
     'rm-pick':()=>{const l=leadById(state.lead);l.picks=l.picks.filter(x=>x!==t.dataset.pick);addEntry(l,'comment',`Removed ${appById(t.dataset.pick).name} from client picks.`);render()},
     add:mAdd,'save-add':saveAdd,import:mImport,'do-import':doImport,submit:()=>mSubmit(t.dataset.app||state.app),'do-submit':doSubmit,
