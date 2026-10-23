@@ -236,6 +236,28 @@ select.inline{border:1px solid var(--line);border-radius:6px;padding:4px 6px;bac
 .yes{color:var(--good);font-weight:700}.no{color:var(--mute)}
 .code{font:12px/1.6 var(--f-mono);background:var(--surface-2);border-radius:8px;padding:12px;overflow-x:auto;white-space:pre}
 
+/* leads */
+.thread{display:flex;flex-direction:column;gap:12px;padding:16px}
+.msg{display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px}
+.msg .ic{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:700 12px var(--f-mono)}
+.msg .body{background:var(--surface-2);border-radius:8px;padding:8px 12px;min-width:0;overflow-wrap:anywhere}
+.msg.in .body{background:var(--good-soft)}
+.msg .mhead{font-size:12.5px;margin-bottom:2px}
+.composer{border-bottom:1px solid var(--line);padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.composer textarea{width:100%;min-height:64px;padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:var(--surface);resize:vertical}
+.composer .row{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap}
+.composer select{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.outcomes{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+.outcomes .btn{justify-content:center}
+.outcomes .btn[aria-pressed="true"]{background:var(--ink-2);border-color:var(--ink-2);color:#fff}
+.bignum{font:600 24px/1.2 var(--f-mono);letter-spacing:.02em}
+.qa{display:flex;gap:4px}
+.snip{max-width:280px;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.unnamed{color:var(--mute);font-style:italic;font-weight:500}
+.inline-edit{border:1px solid transparent;border-radius:6px;padding:3px 6px;background:transparent;width:100%;min-width:0}
+.inline-edit:hover,.inline-edit:focus{border-color:var(--line);background:var(--surface)}
+h1 .inline-edit{font:inherit;padding:0 6px;margin-left:-6px}
+
 @media (max-width:1100px){.g-main,.g-3{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:820px){
   .app{grid-template-columns:minmax(0,1fr)}
@@ -267,7 +289,7 @@ select.inline{border:1px solid var(--line);border-radius:6px;padding:4px 6px;bac
       <label class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="global-search" placeholder="Search applicants, emails, phone numbers, clients" aria-label="Global search"></label>
       <span class="mock-tag">MOCKUP</span>
       <div class="role-switch"><label for="role">View as</label><select id="role"><option>Administrator</option><option>Recruiter</option><option>Manager</option></select></div>
-      <button class="icon-btn" id="bell" aria-label="Notifications"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg><span class="dot" id="bell-count">5</span></button>
+      <button class="icon-btn" id="bell" aria-label="Notifications"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg><span class="dot" id="bell-count">7</span></button>
     </header>
     <main class="content" id="view"></main>
   </div>
@@ -341,6 +363,8 @@ let activity = {
  'PRR-26-0412':[['2026-10-19 09:40','Email sent: Interview invitation (Gulf Star Construction)','James Cruz'],['2026-10-15 10:12','Submitted to Meridian Healthcare for Civil Engineer','James Cruz'],['2026-10-14 15:30','Submitted to Gulf Star Construction for Civil Engineer','James Cruz'],['2026-10-13 11:00','Status changed: Qualified to Interviewing','James Cruz'],['2026-10-12 08:22','Registered via LinkedIn import','System']],
 };
 let notifs = [
+ ['WhatsApp reply','Ahmed Al Rashid (Bluewave Facilities): "We like Maricel and Liza. Can you send 3 more..."','1 h ago','good'],
+ ['New client lead from website','Sophie Martin, Azure Clinics: 5 DHA-licensed nurses.','2 h ago','info'],
  ['New applicant from website form','Joanna Reyes, Registered Nurse. Possible duplicate of PRR-26-0407.','2 h ago','info'],
  ['New applicant from website form','Mark Anthony Dela Cruz, Electrician.','3 h ago','info'],
  ['Client response','Gulf Star Construction confirmed interview for Arjun Mehta on 27 Oct.','Yesterday','good'],
@@ -356,7 +380,7 @@ const followups = [
  ['Request updated passport copy from Elena Petrova','PRR-26-0413','2026-10-21','Maria Santos'],
 ];
 
-const state = {view:'dashboard', app:null, client:null, tab:'overview', sort:['date',-1], filters:{q:'',status:'',pos:'',source:'',rec:''}, range:30, subFilter:{status:'',client:''}, showArchived:false};
+const state = {view:'dashboard', app:null, client:null, tab:'overview', sort:['date',-1], filters:{q:'',status:'',pos:'',source:'',rec:''}, range:30, subFilter:{status:'',client:''}, lf:{q:'',status:'',owner:'',source:'',unnamed:false}, lead:null, showArchived:false};
 
 /* helpers */
 const $ = s => document.querySelector(s);
@@ -382,15 +406,16 @@ const ICONS = {
  submissions:'<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/>',
  email:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
  reports:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+ leads:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
  settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
 };
 function renderNav(){
   const role = $('#role').value;
-  const groups = [['Workspace',[['dashboard','Dashboard'],['applicants','Applicants',applicants.filter(a=>a.status!=='Archived').length],['pipeline','Pipeline'],['clients','Client companies',clients.filter(c=>!c.archived).length],['submissions','Submissions',subs.length]]],
+  const groups = [['Workspace',[['dashboard','Dashboard'],['applicants','Applicants',applicants.filter(a=>a.status!=='Archived').length],['pipeline','Pipeline'],['leads','Client leads',leads.filter(l=>l.status==='New lead').length],['clients','Client companies',clients.filter(c=>!c.archived).length],['submissions','Submissions',subs.length]]],
                   ['Communication',[['email','Email']]],
                   ['Insights',[['reports','Reports']]]];
   if(role==='Administrator') groups.push(['Admin',[['settings','Settings & security']]]);
-  $('#nav').innerHTML = groups.map(([g,items])=>`<div class="nav-label">${g}</div>`+items.map(([k,l,c])=>`<button data-nav="${k}" ${state.view===k||(k==='applicants'&&state.view==='profile')||(k==='clients'&&state.view==='client')?'aria-current="page"':''}><svg viewBox="0 0 24 24">${ICONS[k]}</svg>${l}${c!=null?`<span class="count">${c}</span>`:''}</button>`).join('')).join('');
+  $('#nav').innerHTML = groups.map(([g,items])=>`<div class="nav-label">${g}</div>`+items.map(([k,l,c])=>`<button data-nav="${k}" ${state.view===k||(k==='applicants'&&state.view==='profile')||(k==='clients'&&state.view==='client')||(k==='leads'&&state.view==='lead')?'aria-current="page"':''}><svg viewBox="0 0 24 24">${ICONS[k]}</svg>${l}${c!=null?`<span class="count">${c}</span>`:''}</button>`).join('')).join('');
 }
 function go(view, extra={}){Object.assign(state,{view},extra);render();window.scrollTo(0,0)}
 
@@ -410,7 +435,7 @@ function vDashboard(){
   const uniqInterview = new Set(subs.filter(s=>['Interview Scheduled','Shortlisted','Hired / Placed'].includes(s.status)).map(s=>s.app)).size;
   const funnel = [['Registered',applicants.length],['Qualified',qualified],['Submitted',uniqSubmitted],['Interviewed',uniqInterview],['Placed',placed]];
   return `
-  <div class="page-head"><div><div class="eyebrow">Friday, 23 October 2026</div><h1>Recruitment overview</h1><p>Good morning, Maria. 2 new website applicants and 2 overdue follow-ups need attention.</p></div>
+  <div class="page-head"><div><div class="eyebrow">Friday, 23 October 2026</div><h1>Recruitment overview</h1><p>Good morning, Maria. 2 new website applicants, ${leads.filter(l=>l.status==='New lead').length} client leads not yet called, and 2 overdue follow-ups.</p></div>
     <div class="actions"><select class="btn" id="range" aria-label="Date range"><option value="7"${state.range==7?' selected':''}>Last 7 days</option><option value="30"${state.range==30?' selected':''}>Last 30 days</option><option value="90"${state.range==90?' selected':''}>Last 90 days</option></select><button class="btn" data-act="export">Export CSV</button><button class="btn primary" data-act="add">+ Add applicant</button></div></div>
   <section class="kpis">
     <div class="kpi"><div class="eyebrow">Total applicants</div><div class="v">${applicants.length.toLocaleString()}</div><div class="d">All time in database</div></div>
@@ -418,6 +443,7 @@ function vDashboard(){
     <div class="kpi"><div class="eyebrow">Awaiting submission</div><div class="v">${awaiting}</div><div class="d">Ready for Submission</div></div>
     <div class="kpi"><div class="eyebrow">Submitted to clients</div><div class="v">${submitted}</div><div class="d">Active and closed</div></div>
     <div class="kpi"><div class="eyebrow">Interviews scheduled</div><div class="v">${interviews}</div><div class="d">Next: 27 Oct</div></div>
+    <div class="kpi"><div class="eyebrow">Client leads to call</div><div class="v">${queueList().length}</div><div class="d"><a href="#" data-nav="leads">Open call queue</a></div></div>
     <div class="kpi"><div class="eyebrow">Placements</div><div class="v">${placed}</div><div class="d">Conversion <b>${conv}%</b></div></div>
   </section>
   <div class="grid g-main">
@@ -569,7 +595,7 @@ function vSettings(){
    <section class="panel"><div class="panel-h"><h2>Users</h2><button class="btn sm" data-act="invite">+ Invite user</button></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Role</th><th>2FA</th><th>Last sign-in</th></tr></thead><tbody>${users.map(u=>`<tr><td><b>${u[0]}</b><br><small class="muted">${u[1]}</small></td><td><select class="inline">${opts(['Administrator','Recruiter','Manager'],u[2])}</select></td><td><span class="pill t-good">On</span></td><td>${u[3]}</td></tr>`).join('')}</tbody></table></div></section>
    <section class="panel"><div class="panel-h"><h2>Role permissions</h2><span class="muted">Click to toggle</span></div><div class="table-wrap"><table class="perm"><thead><tr><th>Permission</th><th>Admin</th><th>Recruiter</th><th>Manager</th></tr></thead><tbody>${perms.map(p=>`<tr><td>${p[0]}</td>${p.slice(1).map((v,i)=>`<td><button class="btn sm ${v?'yes':'no'}" data-act="perm" ${i===0?'disabled':''} aria-label="Toggle">${v?'✓':'–'}</button></td>`).join('')}</tr>`).join('')}</tbody></table></div></section>
    <section class="panel"><div class="panel-h"><h2>Website application form</h2><span class="pill t-good">Connected</span></div><div class="panel-b" style="display:flex;flex-direction:column;gap:12px">
-     <dl class="kv"><dt>Form</dt><dd>prestige-recruitment-royale.com/candidates/</dd><dt>Endpoint</dt><dd class="mono">POST /api/intake/website-form</dd><dt>Default status</dt><dd>${pill('New Applicant',APP_TONE)}</dd><dt>Notify</dt><dd>All recruiters (in-app + email)</dd></dl>
+     <dl class="kv"><dt>Form</dt><dd>prestige-recruitment-royale.com/candidates/</dd><dt>Endpoint</dt><dd class="mono">POST /api/intake/website-form</dd><dt>Default status</dt><dd>${pill('New Applicant',APP_TONE)}</dd><dt>Notify</dt><dd>All recruiters (in-app + email)</dd><dt>Clients page</dt><dd>Employer enquiries create a client lead with status New lead</dd></dl>
      <div class="eyebrow">On each submission</div>
      <ol style="margin:0;padding-left:20px;color:var(--mute)"><li>Validate required fields and file types</li><li>Create applicant record with unique ID</li><li>Save details and uploaded CV</li><li>Set status to New Applicant</li><li>Notify recruitment team</li><li>Check email and phone for duplicates</li><li>Write entry to activity history</li></ol>
      <div class="eyebrow">Sync log</div>
@@ -579,6 +605,7 @@ function vSettings(){
       <tr id="failed-row"><td class="num">22 Oct 09:15</td><td>Ahmed Siddiqui</td><td>${pill('Failed: CV upload timeout',{x:''}).replace('t-neutral','t-bad')}</td><td><button class="btn sm" data-act="retry">Retry</button></td></tr>
      </tbody></table></div><small class="muted">Failed submissions keep the raw form data for 30 days so nothing is lost.</small></div></section>
    <section class="panel"><div class="panel-h"><h2>Email account</h2><span class="pill t-good">Verified</span></div><div class="panel-b"><dl class="kv"><dt>Provider</dt><dd><select class="inline"><option>Microsoft 365</option><option>Google Workspace</option><option>SMTP</option></select></dd><dt>Send as</dt><dd>recruitment@prestige-recruitment-royale.com</dd><dt>Tracking</dt><dd>Delivery and opens where supported</dd><dt>SPF / DKIM</dt><dd>${pill('Pass',{Pass:'good'})}</dd></dl></div></section>
+   <section class="panel"><div class="panel-h"><h2>WhatsApp Business</h2><span class="pill t-good">Connected</span></div><div class="panel-b"><dl class="kv"><dt>Number</dt><dd>+971 4 555 0142 (Prestige Recruitment Royale)</dd><dt>Provider</dt><dd><select class="inline"><option>WhatsApp Cloud API (Meta)</option><option>Twilio</option><option>360dialog</option></select></dd><dt>Templates</dt><dd>${Object.keys(WA_TPL).length} approved by Meta</dd><dt>Replies</dt><dd>Saved to the matching lead or applicant by phone number</dd><dt>Unknown numbers</dt><dd>Create a new client lead</dd></dl></div></section>
    <section class="panel"><div class="panel-h"><h2>Data protection</h2></div><div class="panel-b"><dl class="kv"><dt>Transport</dt><dd>HTTPS / TLS 1.3 only</dd><dt>Documents</dt><dd>Encrypted at rest, signed short-lived download links</dd><dt>Backups</dt><dd>Daily at 02:00 UTC · last ${pill('Success 23 Oct 02:00',{x:''}).replace('t-neutral','t-good')}</dd><dt>Retention</dt><dd><select class="inline"><option>Anonymise inactive applicants after 24 months</option><option>12 months</option><option>36 months</option></select></dd><dt>Consent</dt><dd>Captured on website form, stored with record</dd><dt>Requests</dt><dd>Export or erase a candidate's data on request</dd></dl></div></section>
    <section class="panel"><div class="panel-h"><h2>Audit history</h2><button class="btn sm" data-act="export">Export</button></div><div class="timeline">${[['23 Oct 08:44','Maria Santos','Changed role of David Lim: Recruiter to Manager'],['22 Oct 16:10','James Cruz','Downloaded CV of Arjun Mehta (PRR-26-0412)'],['22 Oct 11:31','Aisha Rahman','Merged PRR-26-0402 into PRR-26-0399'],['21 Oct 09:02','System','Anonymised 14 records past retention period']].map(([t,by,x])=>`<div class="tl"><i></i><div>${x}<br><small>${t} · ${by}</small></div></div>`).join('')}</div></section>
   </div>`;
@@ -706,14 +733,205 @@ function drawer(){
   $('#bell-count').hidden=true;
 }
 
+/* ---------- Client leads ---------- */
+const LEAD_STATUS=['New lead','No answer','Call back later','Messaged','Emailed','Interested','Needs received','Converted to client','Not interested','Invalid number'];
+const LEAD_TONE={'New lead':'info','No answer':'warn','Call back later':'warn','Messaged':'neutral','Emailed':'neutral','Interested':'accent','Needs received':'accent','Converted to client':'good','Not interested':'bad','Invalid number':'bad'};
+const LEAD_SOURCES=['Excel import','Website (Clients page)','Manual entry','Referral'];
+const OUTCOME={'No answer':'No answer','Spoke, interested':'Interested','Spoke, call back later':'Call back later','Spoke, not interested':'Not interested','Wrong or invalid number':'Invalid number'};
+const KIND={call:['Call','t-info','C'],whatsapp:['WhatsApp sent','t-good','W'],'wa-in':['WhatsApp reply','t-good','W'],email:['Email','t-accent','@'],comment:['Comment','t-neutral','N'],system:['System','t-neutral','S']};
+const WA_TPL={'Introduction':'Hi{name}, this is Maria from Prestige Recruitment Royale. We supply pre-screened nurses, hotel, construction and logistics staff to employers in the GCC and Asia. Which positions are you hiring for at the moment?','After a missed call':'Hi{name}, we tried to call you today from Prestige Recruitment Royale. When is a good time to talk about your staffing needs?','Share candidate profiles':'Hi{name}, as discussed, here are {n} candidate profiles for your review. Let me know which ones you would like to interview.','Follow-up':'Hi{name}, following up on our last conversation. Any update on the positions you mentioned?'};
+const L=(id,name,company,phone,email,country,source,status,owner,next,thread,extra={})=>({id,name,company,phone,email,country,source,status,owner,next,thread,needs:'',headcount:'',picks:[],...extra});
+let leads=[
+ L('LD-1046','Ahmed Al Rashid','Bluewave Facilities Management','+971 55 210 7731','ahmed@bluewavefm.ae','UAE','Excel import','Needs received','Maria Santos','2026-10-24',[
+   ['2026-10-23 09:20','Ahmed Al Rashid','wa-in','Thanks Maria. We like Maricel and Liza. Can you send 3 more housekeeping profiles by Monday?'],
+   ['2026-10-22 16:05','Maria Santos','whatsapp','Hi Mr. Ahmed, as discussed here are 4 candidate profiles for your housekeeping roles. CVs attached. · Delivered ✓✓'],
+   ['2026-10-22 15:40','Maria Santos','call','Spoke, interested. Needs 25 housekeeping and 2 supervisors for a new mall contract starting January. Prefers Filipino staff with GCC experience.'],
+   ['2026-10-20 10:12','James Cruz','call','No answer.'],
+   ['2026-10-14 08:00','System','system','Imported from Leads master sheet, row 87. Sheet remark: "met at Dubai job fair".']],
+   {needs:'Housekeeping Attendant x 25\nCleaning Supervisor x 2\nStart: January 2027, Dubai Hills Mall contract\nBudget: AED 2,200 to 2,600 / month + accommodation',headcount:'27',picks:['PRR-26-0409','PRR-26-0405']}),
+ L('LD-1047','','','+971 50 418 2290','','UAE','Excel import','New lead','James Cruz','',[['2026-10-23 08:10','System','system','Imported from Leads master sheet, row 412. Number only.']]),
+ L('LD-1048','','','+966 55 902 1184','','Saudi Arabia','Excel import','No answer','Aisha Rahman','2026-10-23',[['2026-10-22 11:02','Aisha Rahman','call','No answer. Will try again tomorrow morning.'],['2026-10-14 08:00','System','system','Imported from Leads master sheet, row 213. Number only.']]),
+ L('LD-1049','Leila','','+974 3312 7740','','Qatar','Excel import','Call back later','Aisha Rahman','2026-10-23',[['2026-10-21 13:15','Aisha Rahman','call','Spoke, call back later. Leila from HR was in a meeting. Call back Friday after 2 pm Doha time. Company name not given yet.'],['2026-10-14 08:00','System','system','Imported from Leads master sheet, row 240. Number only.']]),
+ L('LD-1050','Kenneth Lau','Pacific Rim Logistics','+65 9123 4471','kenneth.lau@pacificrim.sg','Singapore','Website (Clients page)','Interested','James Cruz','2026-10-25',[['2026-10-21 10:30','James Cruz','email','Subject: Our fee structure and company profile · Delivered'],['2026-10-21 09:55','James Cruz','comment','Wants 6 forklift operators. Asked for fee structure before committing.'],['2026-10-20 17:40','System','system','Registered through the Clients page form on the website.']],{needs:'Forklift Operator x 6',headcount:'6'}),
+ L('LD-1052','','','+971 52 660 1302','','UAE','Excel import','Invalid number','James Cruz','',[['2026-10-21 09:20','James Cruz','call','Wrong or invalid number. Number not in service.'],['2026-10-14 08:00','System','system','Imported from Leads master sheet, row 415.']]),
+ L('LD-1053','','Sahara Hotels & Resorts','+971 4 388 1200','','UAE','Excel import','Messaged','Maria Santos','2026-10-24',[['2026-10-22 10:05','Maria Santos','whatsapp','Hi, this is Maria from Prestige Recruitment Royale. Which positions are you hiring for at the moment? · Read ✓✓'],['2026-10-22 10:01','Maria Santos','call','No answer. Reception line, asked for HR, put on hold then dropped.'],['2026-10-14 08:00','System','system','Imported from Leads master sheet, row 96.']]),
+ L('LD-1054','','','+968 9221 5503','','Oman','Excel import','New lead','Aisha Rahman','',[['2026-10-23 08:10','System','system','Imported from Leads master sheet, row 530. Number only.']]),
+ L('LD-1055','','','+974 5501 2283','','Qatar','Excel import','New lead','Maria Santos','',[['2026-10-23 08:10','System','system','Imported from Leads master sheet, row 531. Number only.']]),
+ L('LD-1056','Rakesh','BuildRight Contracting','+966 50 311 9820','','Saudi Arabia','Excel import','Not interested','Aisha Rahman','',[['2026-10-19 14:40','Aisha Rahman','call','Spoke, not interested. Using an in-house agency until 2027. Do not call before March 2027.'],['2026-10-14 08:00','System','system','Imported from Leads master sheet, row 301.']]),
+ L('LD-1057','Sophie Martin','Azure Clinics','+971 56 774 0912','sophie.martin@azureclinics.ae','UAE','Website (Clients page)','New lead','Aisha Rahman','',[['2026-10-23 07:48','System','system','Registered through the Clients page form. Message: "Looking for 5 DHA-licensed nurses for a new clinic in JLT."']]),
+ L('LD-1058','','','+965 6604 1187','','Kuwait','Excel import','New lead','James Cruz','',[['2026-10-23 08:10','System','system','Imported from Leads master sheet, row 532. Number only.']]),
+ L('LD-1059','','','+971 55 418 9930','','UAE','Excel import','No answer','James Cruz','2026-10-21',[['2026-10-20 15:10','James Cruz','call','No answer. Second attempt.'],['2026-10-17 11:30','James Cruz','call','No answer.'],['2026-10-14 08:00','System','system','Imported from Leads master sheet, row 418.']]),
+ L('LD-1045','Rajesh Pillai','Gulf Star Construction','+974 4441 2290','r.pillai@gulfstar.qa','Qatar','Referral','Converted to client','Maria Santos','',[['2026-09-02 09:00','System','system','Converted to client CL-011.'],['2026-08-30 12:20','Maria Santos','call','Spoke, interested. Needs civil engineers and electricians for Lusail project.']],{client:'CL-011'}),
+];
+const leadById=id=>leads.find(l=>l.id===id);
+const NOW=()=>'2026-10-23 '+new Date().toTimeString().slice(0,5);
+const ago=t=>{const d=daysAgo(t.slice(0,10));return d<=0?'Today '+t.slice(11,16):d===1?'Yesterday':d+'d ago'};
+const leadName=l=>l.name?esc(l.name):'<span class="unnamed">Name unknown</span>';
+const thread=th=>th.map(([t,by,k,x])=>`<div class="msg ${k==='wa-in'?'in':''}"><span class="ic ${KIND[k][1]}">${KIND[k][2]}</span><div class="body"><div class="mhead"><b>${esc(by)}</b> <span class="muted">· ${KIND[k][0]} · ${t}</span></div><div style="white-space:pre-wrap">${esc(x)}</div></div></div>`).join('');
+function addEntry(l,kind,text,by='Maria Santos'){l.thread.unshift([NOW(),by,kind,text])}
+
+function vLeads(){
+  const f=state.lf,q=f.q.toLowerCase();
+  const list=leads.filter(l=>(!q||[l.name,l.company,l.phone,l.email,l.country,l.id,...l.thread.map(x=>x[3])].join(' ').toLowerCase().includes(q))&&(!f.status||l.status===f.status)&&(!f.owner||l.owner===f.owner)&&(!f.source||l.source===f.source)&&(!f.unnamed||!l.name));
+  const due=leads.filter(l=>l.next&&l.next<='2026-10-23'&&!['Converted to client','Not interested','Invalid number'].includes(l.status));
+  return `<div class="page-head"><div><h1>Client leads</h1><p>Employers from the Leads master sheet and the website Clients page. Call, message and comment on each one until it becomes a client.</p></div>
+   <div class="actions"><button class="btn" data-act="import-leads">Import Excel / CSV</button><button class="btn" data-act="add-lead">+ Add lead</button><button class="btn brass" data-act="queue">Start call queue (${queueList().length})</button></div></div>
+  <section class="kpis">
+   <div class="kpi"><div class="eyebrow">Total leads</div><div class="v">${leads.length}</div><div class="d">${leads.filter(l=>l.source==='Website (Clients page)').length} from website</div></div>
+   <div class="kpi"><div class="eyebrow">Not yet contacted</div><div class="v">${leads.filter(l=>l.status==='New lead').length}</div><div class="d">Status: New lead</div></div>
+   <div class="kpi"><div class="eyebrow">Number only</div><div class="v">${leads.filter(l=>!l.name).length}</div><div class="d">Name still unknown</div></div>
+   <div class="kpi"><div class="eyebrow">Follow-ups due</div><div class="v">${due.length}</div><div class="d">Today or overdue</div></div>
+   <div class="kpi"><div class="eyebrow">Interested</div><div class="v">${leads.filter(l=>['Interested','Needs received'].includes(l.status)).length}</div><div class="d">Incl. needs received</div></div>
+   <div class="kpi"><div class="eyebrow">Converted</div><div class="v">${leads.filter(l=>l.status==='Converted to client').length}</div><div class="d">Now client companies</div></div>
+  </section>
+  <section class="panel"><div class="toolbar">
+   <input id="lf-q" placeholder="Number, name, company or comment" value="${esc(f.q)}" aria-label="Search leads">
+   <select id="lf-status" aria-label="Status"><option value="">All statuses</option>${opts(LEAD_STATUS,f.status)}</select>
+   <select id="lf-owner" aria-label="Assigned to"><option value="">All staff</option>${opts(RECRUITERS,f.owner)}</select>
+   <select id="lf-source" aria-label="Source"><option value="">All sources</option>${opts(LEAD_SOURCES,f.source)}</select>
+   <label class="btn sm"><input type="checkbox" id="lf-unnamed" ${f.unnamed?'checked':''}> Number only</label></div>
+  <div class="table-wrap"><table><thead><tr><th>Lead</th><th>Company / country</th><th>Status</th><th>Latest comment</th><th>Assigned</th><th>Follow-up</th><th>Contact</th></tr></thead><tbody>
+  ${list.map(l=>{const last=l.thread[0];const od=l.next&&l.next<'2026-10-23';return `<tr class="click" data-lead="${l.id}"><td style="min-width:190px"><b>${leadName(l)}</b><div class="mono" style="white-space:nowrap">${esc(l.phone)}</div><small class="muted">${l.id} · ${esc(l.source)}</small></td>
+   <td>${l.company?esc(l.company):'<span class="muted">Unknown</span>'}<br><small class="muted">${esc(l.country)}</small></td>
+   <td><select class="inline" data-lstatus="${l.id}" aria-label="Status">${opts(LEAD_STATUS,l.status)}</select></td>
+   <td><div class="snip"><span class="pill ${KIND[last[2]][1]}" style="font-size:11px">${KIND[last[2]][0]}</span> ${esc(last[3])}</div><small class="muted">${esc(last[1])} · ${ago(last[0])}</small></td>
+   <td>${esc(l.owner)}</td><td class="num">${l.next?`<span class="due ${od?'over':''}">${od?'Overdue ':''}${fmtDate(l.next).slice(0,6)}</span>`:'<span class="muted">None</span>'}</td>
+   <td><div class="qa"><button class="btn sm" data-act="call" data-lid="${l.id}">Call</button><button class="btn sm" data-act="wa" data-lid="${l.id}">WhatsApp</button><button class="btn sm" data-act="lead-mail" data-lid="${l.id}">Email</button></div></td></tr>`}).join('')||'<tr><td colspan="7" class="muted" style="text-align:center;padding:30px">No leads match these filters.</td></tr>'}
+  </tbody></table></div><div class="foot"><span>Showing ${list.length} of ${leads.length}</span><span>Every call, message and comment is saved on the lead with the staff name and time.</span></div></section>`;
+}
+function vLead(){
+  const l=leadById(state.lead); if(!l) return go('leads');
+  const avail=applicants.filter(a=>!l.picks.includes(a.id)&&a.status!=='Archived');
+  return `<div><button class="btn sm" data-nav="leads">← All leads</button></div>
+  ${l.client?`<div class="notice good">Converted to client.&nbsp;<a href="#" data-client="${l.client}">Open ${esc(clientById(l.client).name)}</a></div>`:''}
+  <section class="panel"><div class="panel-b profile-head">
+   <div class="avatar" style="width:56px;height:56px;font-size:18px">${l.name?initials(l.name):'#'}</div>
+   <div style="flex:1;min-width:220px"><div class="mono muted">${l.id} · ${esc(l.source)} · ${esc(l.country)}</div>
+    <h1><input class="inline-edit" id="l-name" value="${esc(l.name)}" placeholder="Add contact name" aria-label="Contact name"></h1>
+    <div class="bignum">${esc(l.phone)}</div></div>
+   <div class="field"><label for="l-status">Lead status</label><select id="l-status" class="inline" style="max-width:none">${opts(LEAD_STATUS,l.status)}</select></div>
+   <div class="actions"><button class="btn primary" data-act="call" data-lid="${l.id}">Log call</button><button class="btn" data-act="wa" data-lid="${l.id}">WhatsApp</button><button class="btn" data-act="lead-mail" data-lid="${l.id}">Email</button>${l.client?'':`<button class="btn brass" data-act="convert">Convert to client</button>`}</div>
+  </div></section>
+  <div class="grid g-main">
+   <section class="panel"><div class="panel-h"><h2>Comments &amp; activity</h2><span class="muted">${l.thread.length} entries</span></div>
+    <div class="composer"><textarea id="cm-text" placeholder="Add a comment for the team: who you spoke to, what they said, what happens next"></textarea>
+     <div class="row"><select id="cm-kind" aria-label="Entry type"><option value="comment">Comment</option><option value="call">Call note</option></select><button class="btn primary sm" data-act="post">Post comment</button></div></div>
+    <div class="thread">${thread(l.thread)}</div></section>
+   <div class="grid" style="align-content:start">
+    <section class="panel"><div class="panel-h"><h2>Lead details</h2></div><div class="panel-b"><dl class="kv">
+     <dt>Company</dt><dd><input class="inline-edit" id="l-company" value="${esc(l.company)}" placeholder="Add company"></dd>
+     <dt>Email</dt><dd><input class="inline-edit" id="l-email" value="${esc(l.email)}" placeholder="Add email"></dd>
+     <dt>Assigned to</dt><dd><select class="inline" id="l-owner">${opts(RECRUITERS,l.owner)}</select></dd>
+     <dt>Next follow-up</dt><dd><input type="date" class="inline-edit" id="l-next" value="${l.next}"></dd></dl></div></section>
+    <section class="panel"><div class="panel-h"><h2>What they need</h2><button class="btn sm" data-act="save-needs">Save</button></div><div class="panel-b" style="display:flex;flex-direction:column;gap:10px">
+     <div class="field"><label for="l-needs">Positions and requirements</label><textarea id="l-needs" placeholder="e.g. Housekeeping Attendant x 25">${esc(l.needs)}</textarea></div>
+     <div class="field"><label for="l-head">Total headcount</label><input id="l-head" value="${esc(l.headcount)}" inputmode="numeric"></div></div></section>
+    <section class="panel"><div class="panel-h"><h2>Candidates they picked</h2><span class="muted">${l.picks.length}</span></div>
+     <div class="list">${l.picks.map(id=>{const a=appById(id);return a?`<div class="li"><div class="avatar">${initials(a.name)}</div><div class="grow"><a href="#" data-open="${a.id}">${esc(a.name)}</a><br><small>${esc(a.pos)} · ${pill(a.status,APP_TONE)}</small></div><button class="btn sm" data-act="rm-pick" data-pick="${a.id}" aria-label="Remove">Remove</button></div>`:''}).join('')||'<div class="li muted">No candidates picked yet.</div>'}</div>
+     <div class="panel-b" style="display:flex;gap:8px;border-top:1px solid var(--line)"><select class="inline" id="pick-sel" style="flex:1;max-width:none" aria-label="Candidate">${avail.map(a=>`<option value="${a.id}">${esc(a.name)} · ${esc(a.pos)}</option>`).join('')}</select><button class="btn sm" data-act="add-pick">Add</button></div></section>
+   </div></div>`;
+}
+function queueList(){const rank={'Call back later':0,'No answer':1,'New lead':2};return leads.filter(l=>l.status in rank&&(!l.next||l.next<='2026-10-23')).sort((a,b)=>rank[a.status]-rank[b.status]).map(l=>l.id)}
+function startQueue(){state.queue=queueList();state.qi=0;if(!state.queue.length)return toast('Nobody to call right now.');mCall(state.queue[0],true)}
+function nextInQueue(){render();state.qi++;if(state.qi>=state.queue.length){closeModal();toast(`Queue finished. ${state.queue.length} leads worked.`)}else mCall(state.queue[state.qi],true)}
+function mCall(lid,queue=false){
+  state.callLead=lid;state.inQueue=queue;const l=leadById(lid);const last=l.thread.find(x=>x[2]!=='system');
+  modal(queue?`Call queue · ${state.qi+1} of ${state.queue.length}`:'Log a call',`
+   <div class="profile-head"><div style="min-width:0"><div class="mono muted">${l.id} · ${esc(l.country)} · ${esc(l.owner)}</div><div class="bignum">${esc(l.phone)}</div><div>${leadName(l)}${l.company?' · '+esc(l.company):''}</div></div>
+    <div class="actions" style="margin-left:auto"><button class="btn sm" data-act="copy" data-copy="${esc(l.phone)}">Copy number</button><button class="btn sm" data-act="wa" data-lid="${l.id}">WhatsApp instead</button></div></div>
+   ${last?`<div class="notice info">Last contact: ${esc(last[3])} (${esc(last[1])}, ${ago(last[0])})</div>`:`<div class="notice info">First call. Ask for the contact's name, the company, and which roles they hire for.</div>`}
+   <div class="eyebrow">Outcome</div><div class="outcomes">${Object.keys(OUTCOME).map(o=>`<button class="btn" data-act="outcome" data-o="${o}" aria-pressed="false">${o}</button>`).join('')}</div>
+   <div class="form"><div class="field"><label for="c-name">Contact name</label><input id="c-name" value="${esc(l.name)}" placeholder="If you got it"></div><div class="field"><label for="c-company">Company</label><input id="c-company" value="${esc(l.company)}" placeholder="If you got it"></div>
+   <div class="field full"><label for="c-notes">Notes</label><textarea id="c-notes" style="min-height:70px" placeholder="What they said, what they need, when to call back"></textarea></div>
+   <div class="field"><label for="c-next">Next follow-up</label><input type="date" id="c-next" value="${l.next||''}"></div></div>`,
+   queue?`<button class="btn" data-close>End queue</button><button class="btn" data-act="skip">Skip</button><button class="btn primary" data-act="save-call">Save &amp; next lead</button>`:`<button class="btn" data-close>Cancel</button><button class="btn primary" data-act="save-call">Save call</button>`);
+}
+function saveCall(){
+  const l=leadById(state.callLead),b=document.querySelector('[data-act="outcome"][aria-pressed="true"]');
+  if(!b)return toast('Pick a call outcome first.');
+  const o=b.dataset.o,notes=$('#c-notes').value.trim();
+  if($('#c-name').value.trim()&&$('#c-name').value.trim()!==l.name){l.name=$('#c-name').value.trim()}
+  if($('#c-company').value.trim())l.company=$('#c-company').value.trim();
+  l.status=OUTCOME[o];l.next=$('#c-next').value;addEntry(l,'call',o+'.'+(notes?' '+notes:''));
+  if(state.inQueue)return nextInQueue();
+  closeModal();toast('Call logged.');render();
+}
+function mWa(lid){
+  state.waLead=lid;const l=leadById(lid);
+  modal('Send WhatsApp message',`<div class="notice info">Sent from the company WhatsApp Business number +971 4 555 0142. Replies appear in this lead's comments automatically.</div>
+   <div class="form"><div class="field"><label>To</label><input value="${esc(l.phone)}${l.name?' · '+esc(l.name):''}" readonly></div><div class="field"><label for="wa-tpl">Approved template</label><select id="wa-tpl">${opts(Object.keys(WA_TPL),l.picks.length?'Share candidate profiles':l.status==='No answer'?'After a missed call':'Introduction')}</select></div>
+   <div class="field full"><label for="wa-text">Message</label><textarea id="wa-text" style="min-height:130px"></textarea></div>
+   ${l.picks.length?`<div class="field full"><label><input type="checkbox" id="wa-cv" checked> Attach CVs of ${l.picks.length} picked candidates</label></div>`:''}</div>`,
+   `<button class="btn" data-close>Cancel</button><button class="btn primary" data-act="send-wa">Send on WhatsApp</button>`);
+  const fill=()=>$('#wa-text').value=WA_TPL[$('#wa-tpl').value].replace('{name}',l.name?' '+l.name:'').replace('{n}',l.picks.length||3);
+  $('#wa-tpl').onchange=fill;fill();
+}
+function sendWa(){const l=leadById(state.waLead);addEntry(l,'whatsapp',$('#wa-text').value+($('#wa-cv')?.checked?` [${l.picks.length} CVs attached]`:'')+' · Delivered ✓✓');if(['New lead','No answer','Call back later'].includes(l.status))l.status='Messaged';closeModal();toast('WhatsApp message sent and saved to the lead.');render()}
+function mLeadMail(lid){
+  state.mailLead=lid;const l=leadById(lid);
+  modal('Email lead',`<div class="form"><div class="field full" id="w-lm"><label for="lm-to">To</label><input id="lm-to" type="email" value="${esc(l.email)}" placeholder="name@company.com"><span class="hint">${l.email?'From recruitment@prestige-recruitment-royale.com':'No email on file. Whatever you enter is saved to the lead.'}</span></div>
+   <div class="field full"><label for="lm-sub">Subject</label><input id="lm-sub" value="Staffing support from Prestige Recruitment Royale"></div>
+   <div class="field full"><label for="lm-body">Message</label><textarea id="lm-body" style="min-height:180px">Dear ${esc(l.name||'Hiring Manager')},\n\nThank you for your time today. Prestige Recruitment Royale supplies pre-screened nurses, hospitality, construction and logistics staff to employers across the GCC and Asia.\n\nPlease reply with the positions and headcount you need and we will send matching candidate profiles within 48 hours.\n\nKind regards,\nMaria Santos</textarea></div>
+   <div class="field full"><label><input type="checkbox" id="lm-prof" checked> Attach company profile (PDF)</label></div></div>`,
+   `<button class="btn" data-close>Cancel</button><button class="btn primary" data-act="send-lead-mail">Send email</button>`);
+}
+function sendLeadMail(){const l=leadById(state.mailLead),to=$('#lm-to').value.trim();if(!/^\S+@\S+\.\S+$/.test(to)){$('#w-lm').classList.add('err');$('#w-lm .hint').textContent='Enter a valid email address.';return}l.email=to;addEntry(l,'email',`Subject: ${$('#lm-sub').value} · Delivered`);if(['New lead','No answer'].includes(l.status))l.status='Emailed';closeModal();toast(`Email sent to ${to}.`);render()}
+function mImportLeads(){
+  const rows=[['+971 50 771 4420','','','','ok'],['0501234567','Hassan','','called before, no answer','fix'],['+966 54 220 9917','','Al Majd Catering','','ok'],['+971 55 210 7731','Ahmed','Bluewave','','dup'],['+974 3390 112','','','','bad'],['+968 9550 3381','Mr. Salim','Oasis FM','wants cleaners','ok']];
+  modal('Import client leads',`<label class="drop" for="li-file"><b>Leads master sheet.xlsx</b> loaded · 1,284 rows<br><small>Drop another .xlsx or .csv to replace</small></label><input type="file" id="li-file" accept=".csv,.xlsx" hidden>
+   <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="pill t-info">1,031 number only</span><span class="pill t-neutral">198 with name</span><span class="pill t-warn">41 duplicate numbers</span><span class="pill t-bad">14 invalid numbers</span></div>
+   <div class="eyebrow">Column mapping</div>
+   <div class="form">${[['Column A · "Number"','Phone number (required)'],['Column B · "Name"','Contact name'],['Column C · "Company"','Company'],['Column D · "Remarks"','First comment']].map(([f,t])=>`<div class="field"><label>${f}</label><select><option>${t}</option><option>Skip column</option></select></div>`).join('')}</div>
+   <div class="eyebrow">Preview</div>
+   <div class="table-wrap"><table><thead><tr><th>Number</th><th>Name</th><th>Company</th><th>Check</th></tr></thead><tbody>${rows.map(r=>`<tr><td class="mono">${r[0]}</td><td>${r[1]||'<span class="muted">none</span>'}</td><td>${r[2]||'<span class="muted">none</span>'}</td><td>${r[4]==='ok'?pill('Ready',{Ready:'good'}):r[4]==='fix'?'<span class="pill t-info">Country code added: +971 50 123 4567</span>':r[4]==='dup'?'<span class="flag">Already lead LD-1046</span>':'<span class="pill t-bad">Too short</span>'}</td></tr>`).join('')}</tbody></table></div>
+   <div class="form"><div class="field"><label for="li-cc">Default country code for local numbers</label><select id="li-cc"><option>+971 UAE</option><option>+966 Saudi Arabia</option><option>+974 Qatar</option><option>+63 Philippines</option></select></div>
+   <div class="field"><label for="li-assign">Assign leads to</label><select id="li-assign"><option>Split evenly between staff</option>${RECRUITERS.map(r=>`<option>${r}</option>`).join('')}<option>Leave unassigned</option></select></div>
+   <div class="field full"><label for="li-dup">When a number already exists</label><select id="li-dup"><option>Skip it and add the remark as a comment on the existing lead</option><option>Skip it</option><option>Import anyway and flag</option></select></div></div>`,
+   `<button class="btn" data-close>Cancel</button><button class="btn primary" data-act="do-import-leads">Import 1,229 leads</button>`);
+  mImportLeads.rows=rows;
+}
+function doImportLeads(){
+  let n=Math.max(...leads.map(l=>+l.id.slice(3)));
+  mImportLeads.rows.filter(r=>['ok','fix'].includes(r[4])).forEach((r,i)=>{n++;const ph=r[4]==='fix'?'+971 50 123 4567':r[0];leads.unshift(L('LD-'+n,r[1],r[2],ph,'',{'+971':'UAE','+966':'Saudi Arabia','+968':'Oman'}[ph.slice(0,4)]||'UAE','Excel import','New lead',RECRUITERS[i%3],'',[...(r[3]?[[NOW(),'Imported remark','comment',r[3]]]:[]),[NOW(),'System','system','Imported from Leads master sheet.xlsx'+(r[1]?'':'. Number only.')]]))});
+  closeModal();toast('Imported 1,229 leads, split between 3 staff. Skipped 41 duplicates and 14 invalid numbers.');go('leads');
+}
+function mAddLead(){
+  modal('Add client lead',`<div class="form"><div class="field" id="w-lp"><label for="nl-phone">Phone number *</label><input id="nl-phone" value="+971 58 902 3341"><span class="hint">Only the number is required</span></div>
+   <div class="field"><label for="nl-name">Contact name</label><input id="nl-name"></div><div class="field"><label for="nl-company">Company</label><input id="nl-company"></div>
+   <div class="field"><label for="nl-country">Country</label><select id="nl-country">${opts(['UAE','Saudi Arabia','Qatar','Oman','Kuwait','Bahrain','Singapore'],'UAE')}</select></div>
+   <div class="field"><label for="nl-src">Source</label><select id="nl-src">${opts(LEAD_SOURCES,'Manual entry')}</select></div><div class="field"><label for="nl-owner">Assign to</label><select id="nl-owner">${opts(RECRUITERS,'Maria Santos')}</select></div>
+   <div class="field full"><label for="nl-note">First comment</label><textarea id="nl-note" style="min-height:60px"></textarea></div></div>`,
+   `<button class="btn" data-close>Cancel</button><button class="btn primary" data-act="save-lead">Save lead</button>`);
+  const chk=()=>{const d=leads.find(l=>normPhone(l.phone)===normPhone($('#nl-phone').value));$('#w-lp').classList.toggle('err',!!d);$('#w-lp .hint').textContent=d?`Already saved as ${d.id}`:'Only the number is required'};$('#nl-phone').oninput=chk;chk();
+}
+function saveLead(){
+  const ph=$('#nl-phone').value.trim();if(normPhone(ph).length<8)return toast('Enter a full phone number with country code.');
+  if(leads.find(l=>normPhone(l.phone)===normPhone(ph)))return toast('This number is already a lead.');
+  const l=L('LD-'+(Math.max(...leads.map(l=>+l.id.slice(3)))+1),$('#nl-name').value.trim(),$('#nl-company').value.trim(),ph,'',$('#nl-country').value,$('#nl-src').value,'New lead',$('#nl-owner').value,'',[[NOW(),'Maria Santos','system','Lead added manually.']]);
+  if($('#nl-note').value.trim())addEntry(l,'comment',$('#nl-note').value.trim());
+  leads.unshift(l);closeModal();toast(`${l.id} saved.`);go('lead',{lead:l.id});
+}
+function convertLead(){
+  const l=leadById(state.lead);if(!l.company)return toast('Add the company name before converting.');
+  const vac=l.needs.split('\n').map(x=>x.match(/^(.+?)\s*[x×]\s*(\d+)/i)).filter(Boolean).map(m=>[m[1].trim(),+m[2]]);
+  const c={id:'CL-0'+(Math.max(...clients.map(c=>+c.id.slice(-2)))+1),name:l.company,industry:'To confirm',city:l.country,contact:l.name||'To confirm',email:l.email,phone:l.phone,archived:false,vacancies:vac};
+  clients.unshift(c);l.client=c.id;l.status='Converted to client';addEntry(l,'system',`Converted to client ${c.id}. ${vac.length} vacancies copied from needs.`,'System');
+  toast(`${c.name} is now a client.`);go('client',{client:c.id});
+}
+
 /* ---------- render & events ---------- */
-const VIEWS={dashboard:vDashboard,applicants:vApplicants,profile:vProfile,pipeline:vPipeline,clients:vClients,client:vClient,submissions:vSubmissions,email:vEmail,reports:vReports,settings:vSettings};
+const VIEWS={leads:vLeads,lead:vLead,dashboard:vDashboard,applicants:vApplicants,profile:vProfile,pipeline:vPipeline,clients:vClients,client:vClient,submissions:vSubmissions,email:vEmail,reports:vReports,settings:vSettings};
 function render(){renderNav();const html=VIEWS[state.view]();if(html)$('#view').innerHTML=html;bindView()}
 function bindView(){
   const on=(s,ev,fn)=>{const e=$(s);if(e)e[ev]=fn};
   on('#range','onchange',e=>{state.range=+e.target.value;render()});
   [['#f-status','status'],['#f-pos','pos'],['#f-source','source'],['#f-rec','rec']].forEach(([s,k])=>on(s,'onchange',e=>{state.filters[k]=e.target.value;render()}));
   on('#f-q','oninput',e=>{state.filters.q=e.target.value;const pos=e.target.selectionStart;render();const i=$('#f-q');i.focus();i.setSelectionRange(pos,pos)});
+  [['#lf-status','status'],['#lf-owner','owner'],['#lf-source','source']].forEach(([s,k])=>on(s,'onchange',e=>{state.lf[k]=e.target.value;render()}));
+  on('#lf-unnamed','onchange',e=>{state.lf.unnamed=e.target.checked;render()});
+  on('#lf-q','oninput',e=>{state.lf.q=e.target.value;const pos=e.target.selectionStart;render();const i=$('#lf-q');i.focus();i.setSelectionRange(pos,pos)});
+  const lf=(id,key,label)=>on(id,'onchange',e=>{const l=leadById(state.lead);const v=e.target.value.trim();if(v===l[key])return;addEntry(l,'system',`${label} changed${l[key]?' from '+l[key]:''} to ${v||'(blank)'}`);l[key]=v;toast(label+' saved.');render()});
+  lf('#l-name','name','Contact name');lf('#l-company','company','Company');lf('#l-email','email','Email');lf('#l-owner','owner','Assigned staff');lf('#l-next','next','Next follow-up');lf('#l-status','status','Status');
   on('#pipe-rec','onchange',e=>{state.filters.rec=e.target.value;render()});
   on('#s-status','onchange',e=>{state.subFilter.status=e.target.value;render()});
   on('#s-client','onchange',e=>{state.subFilter.client=e.target.value;render()});
@@ -729,21 +947,31 @@ function bindView(){
 document.addEventListener('change',e=>{
   const t=e.target;
   if(t.dataset.status){const a=appById(t.dataset.status);log(a.id,`Status changed: ${a.status} to ${t.value}`);a.status=t.value;toast(`${a.name}: ${t.value}`)}
+  if(t.dataset.lstatus){const l=leadById(t.dataset.lstatus);addEntry(l,'system',`Status changed: ${l.status} to ${t.value}`);l.status=t.value;toast(`${l.id}: ${t.value}`)}
   if(t.dataset.sub){const s=subs.find(x=>x.id===t.dataset.sub);log(s.app,`${clientById(s.client).name} submission: ${s.status} to ${t.value}`);s.status=t.value;toast(`Client status updated to ${t.value}. Overall status unchanged.`)}
 });
 document.addEventListener('click',e=>{
   if(e.target.closest('select,input,textarea,label')&&!e.target.closest('[data-act]'))return;
-  const t=e.target.closest('[data-nav],[data-open],[data-client],[data-act],[data-tab],[data-sort],[data-close]');
+  const t=e.target.closest('[data-nav],[data-lead],[data-open],[data-client],[data-act],[data-tab],[data-sort],[data-close]');
   if(!t)return;
   if(t.hasAttribute('data-close')){if(e.target===t||t.tagName==='BUTTON')closeModal();return}
   e.preventDefault();
   if(t.dataset.nav)return go(t.dataset.nav);
+  if(t.dataset.lead){closeModal();return go('lead',{lead:t.dataset.lead})}
   if(t.dataset.open){closeModal();return go('profile',{app:t.dataset.open,tab:'overview'})}
   if(t.dataset.client)return go('client',{client:t.dataset.client});
   if(t.dataset.tab){state.tab=t.dataset.tab;return render()}
   if(t.dataset.sort){state.sort=[t.dataset.sort,state.sort[0]===t.dataset.sort?-state.sort[1]:1];return render()}
   const act=t.dataset.act;
-  ({add:mAdd,'save-add':saveAdd,import:mImport,'do-import':doImport,submit:()=>mSubmit(t.dataset.app||state.app),'do-submit':doSubmit,
+  ({'import-leads':mImportLeads,'do-import-leads':doImportLeads,'add-lead':mAddLead,'save-lead':saveLead,queue:startQueue,
+    call:()=>mCall(t.dataset.lid),wa:()=>mWa(t.dataset.lid),'lead-mail':()=>mLeadMail(t.dataset.lid),'send-wa':sendWa,'send-lead-mail':sendLeadMail,
+    outcome:()=>document.querySelectorAll('[data-act="outcome"]').forEach(b=>b.setAttribute('aria-pressed',b===t)),'save-call':saveCall,skip:nextInQueue,convert:convertLead,
+    copy:()=>{try{navigator.clipboard.writeText(t.dataset.copy).then(()=>toast('Number copied.'),()=>toast('Copy blocked. Select the number instead.'))}catch(_){toast('Copy blocked. Select the number instead.')}},
+    post:()=>{const l=leadById(state.lead),x=$('#cm-text').value.trim();if(!x)return toast('Write a comment first.');addEntry(l,$('#cm-kind').value,x);toast('Comment posted.');render()},
+    'save-needs':()=>{const l=leadById(state.lead);l.needs=$('#l-needs').value;l.headcount=$('#l-head').value;if(l.needs&&['New lead','Interested','Messaged','Emailed','Call back later'].includes(l.status))l.status='Needs received';addEntry(l,'comment','Needs updated:\n'+l.needs);toast('Needs saved.');render()},
+    'add-pick':()=>{const l=leadById(state.lead),id=$('#pick-sel').value;if(!id)return;l.picks.push(id);addEntry(l,'comment',`Client picked ${appById(id).name} (${id}).`);toast('Candidate added to client picks.');render()},
+    'rm-pick':()=>{const l=leadById(state.lead);l.picks=l.picks.filter(x=>x!==t.dataset.pick);addEntry(l,'comment',`Removed ${appById(t.dataset.pick).name} from client picks.`);render()},
+    add:mAdd,'save-add':saveAdd,import:mImport,'do-import':doImport,submit:()=>mSubmit(t.dataset.app||state.app),'do-submit':doSubmit,
     compose:()=>mCompose({app:t.dataset.to,client:t.dataset.clientTo,tpl:t.dataset.tpl}),send,'add-client':mClient,'save-client':saveClient,
     clear:()=>{state.filters={q:'',status:'',pos:'',source:'',rec:''};render()},
     export:()=>toast('Export prepared: recruitment_report_2026-10-23.csv (mockup)'),
