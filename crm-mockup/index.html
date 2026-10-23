@@ -3,7 +3,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Jost:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: fixed ink sidebar + working canvas; sidebar collapses to a scrolling top tab strip on phones */
 :root{
@@ -278,6 +278,34 @@ h1 .inline-edit{font:inherit;padding:0 6px;margin-left:-6px}
   .f-step{grid-template-columns:90px minmax(0,1fr) 46px}
 }
 @media (prefers-reduced-motion:no-preference){.modal,.drawer{animation:rise .18s ease-out}@keyframes rise{from{transform:translateY(8px);opacity:.6}}}
+
+/* Prestige Recruitment Royale website palette: burgundy, antique gold, warm cream */
+:root{
+  --ink:#5a1424; --ink-2:#6f1f31; --ink-fg:#f3e6d6; --ink-mute:#cdb08a;
+  --bg:#f7f1e7; --surface:#fffdf9; --surface-2:#f2eadd; --line:#e5d9c6;
+  --fg:#2b1b1d; --mute:#7b6a63;
+  --brass:#b8923f; --brass-soft:#f4e9d1; --brass-fg:#7a5a18;
+  --f-display:"Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --f-body:"Jost", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --ink:#2a0a12; --ink-2:#43121f; --ink-fg:#f1e3d3; --ink-mute:#c4a57f;
+  --bg:#1a1013; --surface:#24171a; --surface-2:#2f1e22; --line:#432c31;
+  --fg:#f2e8de; --mute:#b9a59b; --brass:#d4b062; --brass-soft:#3a2c17; --brass-fg:#ecd39a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ink:#2a0a12; --ink-2:#43121f; --ink-fg:#f1e3d3; --ink-mute:#c4a57f;
+  --bg:#1a1013; --surface:#24171a; --surface-2:#2f1e22; --line:#432c31;
+  --fg:#f2e8de; --mute:#b9a59b; --brass:#d4b062; --brass-soft:#3a2c17; --brass-fg:#ecd39a; color-scheme:dark}
+h1,h2,h3{font-weight:600;letter-spacing:0}
+h1{font-size:30px}h2{font-size:20px}h3{font-size:16px}
+.kpi .v,.client .stats b{font-family:var(--f-display);font-weight:600;font-size:30px;font-variant-numeric:lining-nums tabular-nums}
+.brand b{font-family:var(--f-display);font-size:17px;font-weight:600;color:var(--ink-fg)}
+.crest{background:var(--brass);color:var(--ink);font-family:var(--f-display)}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+.btn.brass{background:var(--brass);border-color:var(--brass);color:#fff}
+.nav button[aria-current="page"]{box-shadow:inset 3px 0 0 var(--brass)}
+.bar i{background:var(--ink)}
+.f-step .bar i{background:var(--brass)}
 </style>
 
 <div class="app">
