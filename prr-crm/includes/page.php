@@ -51,11 +51,11 @@ function prr_render_login( $error = '' ) {
 <html lang="en"<?php echo prr_theme_attr( $b ); ?>><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <?php echo prr_head_tags( 'login' ); ?>
 <style>
-:root{--ink:#5a1424;--brass:#b8923f;--bg:#f7f1e7;--surface:#fffdf9;--line:#e5d9c6;--fg:#2b1b1d;--mute:#7b6a63;--bad:#b63a3a;--bad-soft:#f9e1e1}
+:root{--ink:#4e0d1b;--brass:#b4844e;--bg:#f7f1e7;--surface:#fffdf9;--line:#e5d9c6;--fg:#2b1b1d;--mute:#7b6a63;--bad:#b63a3a;--bad-soft:#f9e1e1}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bad:#f08484;--bad-soft:#401f24}}:root[data-theme="dark"]{--bad:#f08484;--bad-soft:#401f24}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;background:var(--bg);color:var(--fg);font:14px/1.5 var(--f-body)}
 .wrap{width:100%;max-width:380px}.brand{display:flex;gap:12px;align-items:center;margin-bottom:22px}
-.crest{width:42px;height:42px;border-radius:9px;background:var(--brass);color:var(--ink);display:grid;place-items:center;font:700 17px var(--f-display);overflow:hidden}.crest-img{object-fit:contain;background:#fff;padding:2px}
+.crest{width:42px;height:42px;border-radius:9px;background:var(--brass);color:var(--ink);display:grid;place-items:center;font:700 17px var(--f-display);overflow:hidden}.crest-img{object-fit:contain;background:transparent;padding:0;border-radius:50%;width:84px;height:84px}
 .brand b{font:700 19px/1.2 var(--f-display);display:block}.brand small{color:var(--mute);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
 .box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:26px}
 h1{font:700 22px var(--f-display);margin:0 0 4px}p{margin:0 0 18px;color:var(--mute)}

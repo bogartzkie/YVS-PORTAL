@@ -33,10 +33,10 @@ function prr_branding_defaults() {
         'portal_subtitle' => 'Recruitment CRM',
         'logo_url'        => '',
         'favicon_url'     => '',
-        'color_main'      => '#5a1424', // burgundy: sidebar, primary buttons
-        'color_accent'    => '#b8923f', // antique gold: highlights
+        'color_main'      => '#4e0d1b', // logo burgundy: sidebar, primary buttons
+        'color_accent'    => '#b4844e', // logo gold: highlights
         'color_bg'        => '#f7f1e7', // cream page background
-        'color_text'      => '#2b1b1d',
+        'color_text'      => '#2a1418',
         'theme_mode'      => 'auto',    // auto (follows the device) | light | dark
         'heading_font'    => 'Cormorant Garamond',
         'body_font'       => 'Jost',
@@ -118,7 +118,8 @@ function prr_theme_attr( $b = null ) {
 
 function prr_brand_mark( $b = null ) {
     $b = $b ?: prr_get_branding();
-    if ( $b['logo_url'] ) return '<img class="crest crest-img" src="' . esc_url( $b['logo_url'] ) . '" alt="' . esc_attr( $b['portal_title'] ) . ' logo">';
+    $logo = $b['logo_url'] ?: PRR_URL . 'assets/logo.png'; // bundled Prestige logo until one is uploaded
+    if ( $logo ) return '<img class="crest crest-img" src="' . esc_url( $logo ) . '" alt="' . esc_attr( $b['portal_title'] ) . ' logo">';
     $words = preg_split( '/\s+/', trim( $b['portal_title'] ) );
     return '<div class="crest">' . esc_html( strtoupper( mb_substr( $words[0] ?? 'P', 0, 1 ) . mb_substr( $words[1] ?? '', 0, 1 ) ) ) . '</div>';
 }
@@ -129,7 +130,7 @@ function prr_head_tags( $page = 'portal' ) {
     $title = trim( str_replace( '{title}', $b['portal_title'], $b['seo_title'] ) ) ?: $b['portal_title'];
     if ( $page === 'login' && $b['login_heading'] && strpos( $title, $b['login_heading'] ) === false ) $title = $b['login_heading'] . ' · ' . $title;
     $index = $page === 'login' && $b['allow_indexing'];
-    $fav = $b['favicon_url'] ?: get_site_icon_url( 64 );
+    $fav = $b['favicon_url'] ?: ( get_site_icon_url( 64 ) ?: PRR_URL . 'assets/favicon.png' );
     $url = home_url( '/' . PRR_PORTAL_SLUG . '/' );
     $o  = '<title>' . esc_html( $title ) . "</title>\n";
     $o .= '<meta name="robots" content="' . ( $index ? 'index,follow' : 'noindex,nofollow' ) . "\">\n";
