@@ -185,7 +185,7 @@ function prr_render_public_form( $form ) {
       <label>Passport copy (optional)<br><input type="file" name="passport" accept=".pdf,.jpg,.jpeg,.png"></label>
     <?php endif; ?>
     <label><input type="checkbox" name="consent" value="1" required> I agree that <?php echo esc_html( prr_get_general()['company_name'] ); ?> may store my details to process my <?php echo $form === 'employer' ? 'enquiry' : 'application'; ?> and contact me by phone, email or WhatsApp.</label>
-    <button type="submit">Submit</button>
+    <button type="submit" style="background:<?php echo esc_attr( prr_get_branding()['color_main'] ); ?>;color:#fff;border:0;padding:12px 22px;border-radius:6px;cursor:pointer">Submit</button>
   </form>
 <?php endif; ?>
 </div>

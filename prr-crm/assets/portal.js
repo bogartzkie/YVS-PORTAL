@@ -393,20 +393,18 @@ let S = null;
 VIEWS.settings = async () => {
   if (!can('manage_settings')) return '<div class="err-box">Only administrators can open Settings.</div>';
   S = await api('GET', '/settings');
-  const tabs = [['general', 'General'], ['team', 'Users'], ['perms', 'Permissions'], ['statuses', 'Statuses'], ['templates', 'Templates'], ['whatsapp', 'WhatsApp'], ['forms', 'Website forms'], ['security', 'Security & audit']];
+  const tabs = [['general', 'General'], ['branding', 'Branding & SEO'], ['team', 'Users'], ['perms', 'Permissions'], ['statuses', 'Statuses'], ['templates', 'Templates'], ['whatsapp', 'WhatsApp'], ['forms', 'Website forms'], ['security', 'Security & audit']];
   const t = state.settingsTab;
   let body = '';
   const g = S.general;
   if (t === 'general') body = `<section class="panel"><div class="panel-h"><h2>General</h2><button class="btn primary sm" data-act="save-general">Save</button></div><div class="panel-b"><div class="form">
     ${[['company_name', 'Company name'], ['from_name', 'Email sender name'], ['from_email', 'Email sender address'], ['notify_emails', 'Send new-applicant alerts to (comma separated)'], ['ref_prefix', 'Applicant reference prefix'], ['currency', 'Default currency']].map(([k, l]) => `<div class="field"><label for="g-${k}">${l}</label><input id="g-${k}" data-g="${k}" value="${esc(g[k])}"></div>`).join('')}
-    <div class="field"><label for="g-brand_dark">Main brand colour (sidebar, buttons)</label><input id="g-brand_dark" data-g="brand_dark" type="color" value="${esc(g.brand_dark)}"></div>
-    <div class="field"><label for="g-brand_accent">Accent colour (highlights)</label><input id="g-brand_accent" data-g="brand_accent" type="color" value="${esc(g.brand_accent)}"></div>
-    <div class="field full"><label for="g-logo_url">Logo image URL (from the website's Media Library)</label><input id="g-logo_url" data-g="logo_url" value="${esc(g.logo_url)}" placeholder="https://prestige-recruitment-royale.com/wp-content/uploads/…/logo.png"></div>
     <div class="field"><label for="g-expiry_warn_days">Warn before passport / visa / contract expiry (days)</label><input id="g-expiry_warn_days" data-g="expiry_warn_days" type="number" value="${esc(g.expiry_warn_days)}"></div>
     <div class="field"><label for="g-retention_months">Anonymise rejected / archived applicants after (months, 0 = never)</label><input id="g-retention_months" data-g="retention_months" type="number" value="${esc(g.retention_months)}"></div>
     <div class="field"><label for="g-recruiter_sees_all">Recruiters can see</label><select id="g-recruiter_sees_all" data-g="recruiter_sees_all"><option value="1"${+g.recruiter_sees_all ? ' selected' : ''}>All applicants and leads</option><option value="0"${+g.recruiter_sees_all ? '' : ' selected'}>Only records assigned to them</option></select></div>
     <div class="field"><label for="g-delete_on_uninstall">When the plugin is deleted</label><select id="g-delete_on_uninstall" data-g="delete_on_uninstall"><option value="0"${+g.delete_on_uninstall ? '' : ' selected'}>Keep all CRM data</option><option value="1"${+g.delete_on_uninstall ? ' selected' : ''}>Delete all CRM data</option></select></div>
     </div><div style="margin-top:14px"><button class="btn sm" data-act="test-email">Send me a test email</button> <small class="muted">Email goes through the site's mail setup. For reliable delivery connect Microsoft 365 or Google Workspace with an SMTP plugin such as WP Mail SMTP.</small></div></div></section>`;
+  if (t === 'branding') body = brandingEditor();
   if (t === 'team') body = `<section class="panel"><div class="panel-h"><h2>Users</h2></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Role</th><th></th></tr></thead><tbody>${P.team.map(u => `<tr><td><b>${esc(u.name)}</b><br><small class="muted">${esc(u.email)}</small></td><td>${u.role_slug === 'administrator' ? 'Site administrator (full access)' : `<select class="inline" data-role="${u.id}">${Object.entries(S.roles).map(([k, l]) => `<option value="${k}"${u.role_slug === k ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>`}</td><td>${u.role_slug !== 'administrator' && u.id !== P.me.id ? `<button class="btn sm danger" data-act="remove-user" data-id="${u.id}">Remove access</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
     <div class="panel-b" style="border-top:1px solid var(--line)"><h3 style="margin-bottom:10px">Add a staff member</h3><div class="form"><div class="field"><label for="nu-name">Name</label><input id="nu-name"></div><div class="field"><label for="nu-email">Email</label><input id="nu-email" type="email"></div><div class="field"><label for="nu-role">Role</label><select id="nu-role">${Object.entries(S.roles).map(([k, l]) => `<option value="${k}"${k === 'prr_recruiter' ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></div><div class="field" style="justify-content:flex-end"><button class="btn primary" data-act="add-user">Add and email a set-password link</button></div></div></div></section>`;
   if (t === 'perms') { const groups = [...new Set(S.privilege_defs.map(d => d.group))];
@@ -435,6 +433,51 @@ VIEWS.settings = async () => {
     <section class="panel"><div class="panel-h"><h2>Audit history</h2><a class="btn sm" href="${esc(exportUrl('audit', { from: '2000-01-01' }))}">Export</a></div><div class="table-wrap"><table><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Record</th><th>IP</th></tr></thead><tbody>${audit.map(a => `<tr><td class="num">${esc(fmtTime(a.created_at))}</td><td>${esc(a.user)}</td><td>${esc(a.action.replace(/_/g, ' '))}${a.details ? `<br><small class="muted">${esc(JSON.stringify(a.details)).slice(0, 140)}</small>` : ''}</td><td>${a.object_type ? `<a href="#${esc(a.object_type)}-${a.object_id}">${esc(a.object_type)} ${a.object_id || ''}</a>` : ''}</td><td class="mono">${esc(a.ip)}</td></tr>`).join('')}</tbody></table></div></section>`; }
   return `<div class="page-head"><div><h1>Settings &amp; security</h1></div></div><div class="settings-nav">${tabs.map(([k, l]) => `<button class="btn sm" data-stab="${k}" aria-pressed="${t === k}">${l}</button>`).join('')}</div>${body}`;
 };
+const PRESETS = [
+  ['Website (burgundy & gold)', { color_main: '#5a1424', color_accent: '#b8923f', color_bg: '#f7f1e7', color_text: '#2b1b1d', heading_font: 'Cormorant Garamond', body_font: 'Jost' }],
+  ['Royal navy & gold', { color_main: '#1b2a4a', color_accent: '#c19a4b', color_bg: '#f5f3ee', color_text: '#1c2233', heading_font: 'Playfair Display', body_font: 'Lato' }],
+  ['Emerald & champagne', { color_main: '#0f4a3c', color_accent: '#c9a96e', color_bg: '#f4f1ea', color_text: '#1d2a26', heading_font: 'Lora', body_font: 'Open Sans' }],
+  ['Charcoal & copper', { color_main: '#2b2b2e', color_accent: '#b8743c', color_bg: '#f5f4f2', color_text: '#1f1f22', heading_font: 'Montserrat', body_font: 'Montserrat' }],
+];
+function brandingEditor() {
+  const b = S.branding;
+  const img = (k, label, hint) => `<div class="field"><label>${label}</label><div class="img-pick">${b[k] ? `<img src="${esc(b[k])}" alt="">` : '<span class="muted">None</span>'}<span class="actions"><label class="btn sm">Upload<input type="file" data-upload="${k}" accept="image/png,image/jpeg,image/webp,image/gif,image/x-icon" hidden></label>${b[k] ? `<button class="btn sm" data-act="img-clear" data-k="${k}">Remove</button>` : ''}</span></div><input type="url" data-b="${k}" value="${esc(b[k])}" placeholder="…or paste an image URL"><span class="hint">${hint}</span></div>`;
+  const color = (k, label) => `<div class="field"><label for="b-${k}">${label}</label><div style="display:flex;gap:8px"><input type="color" id="b-${k}" data-b="${k}" value="${esc(b[k])}"><input data-hex="${k}" value="${esc(b[k])}" style="flex:1" aria-label="${label} hex"></div></div>`;
+  const seoTitle = (b.seo_title || '{title}').replace('{title}', b.portal_title);
+  return `<section class="panel"><div class="panel-h"><h2>Colour scheme</h2><span class="actions"><button class="btn sm" data-act="brand-reset">Undo preview</button><button class="btn primary sm" data-act="save-brand">Save branding &amp; SEO</button></span></div><div class="panel-b" style="display:flex;flex-direction:column;gap:14px">
+    <div><div class="eyebrow" style="margin-bottom:6px">Presets</div><div class="actions">${PRESETS.map(([n, p], i) => `<button class="btn sm" data-act="preset" data-i="${i}"><span class="swatch" style="background:${p.color_main}"></span><span class="swatch" style="background:${p.color_accent}"></span>${esc(n)}</button>`).join('')}</div></div>
+    <div class="form">${color('color_main', 'Main colour (sidebar, buttons)')}${color('color_accent', 'Accent colour (highlights)')}${color('color_bg', 'Page background')}${color('color_text', 'Text colour')}
+    <div class="field"><label for="b-heading_font">Heading font</label><select id="b-heading_font" data-b="heading_font">${opts(S.fonts.heading, b.heading_font)}</select></div>
+    <div class="field"><label for="b-body_font">Text font</label><select id="b-body_font" data-b="body_font">${opts(S.fonts.body, b.body_font)}</select></div>
+    <div class="field"><label for="b-theme_mode">Light / dark mode</label><select id="b-theme_mode" data-b="theme_mode"><option value="auto"${b.theme_mode === 'auto' ? ' selected' : ''}>Follow each person's device setting</option><option value="light"${b.theme_mode === 'light' ? ' selected' : ''}>Always light</option><option value="dark"${b.theme_mode === 'dark' ? ' selected' : ''}>Always dark</option></select></div></div>
+    <small class="muted">Changes preview on this page straight away. Click Save to apply them for everyone.</small></div></section>
+  <section class="panel"><div class="panel-h"><h2>Title &amp; logo</h2></div><div class="panel-b"><div class="form">
+    <div class="field"><label for="b-portal_title">Site title</label><input id="b-portal_title" data-b="portal_title" value="${esc(b.portal_title)}"></div>
+    <div class="field"><label for="b-portal_subtitle">Tagline under the title</label><input id="b-portal_subtitle" data-b="portal_subtitle" value="${esc(b.portal_subtitle)}"></div>
+    ${img('logo_url', 'Logo', 'Square or round works best, at least 120 × 120 px. Shown in the sidebar and on the sign-in page.')}
+    ${img('favicon_url', 'Favicon (browser tab icon)', S.site_icon && !b.favicon_url ? 'Using the website\'s Site Icon until you set one. Use a square PNG, 512 × 512 px.' : 'Square PNG, 512 × 512 px.')}
+    <div class="field"><label for="b-login_heading">Sign-in page heading</label><input id="b-login_heading" data-b="login_heading" value="${esc(b.login_heading)}"></div>
+    <div class="field"><label for="b-login_message">Sign-in page message</label><textarea id="b-login_message" data-b="login_message" rows="2">${esc(b.login_message)}</textarea></div></div></div></section>
+  <section class="panel"><div class="panel-h"><h2>SEO &amp; link previews</h2></div><div class="panel-b"><div class="form">
+    <div class="field full"><label for="b-seo_title">Browser tab and search title</label><input id="b-seo_title" data-b="seo_title" value="${esc(b.seo_title)}" maxlength="70"><span class="hint">{title} is replaced with the site title. Keep it under 60 characters.</span></div>
+    <div class="field full"><label for="b-seo_description">Meta description</label><textarea id="b-seo_description" data-b="seo_description" rows="2" maxlength="300">${esc(b.seo_description)}</textarea><span class="hint" id="desc-count">${(b.seo_description || '').length} / 160 characters recommended</span></div>
+    ${img('og_image_url', 'Share image (WhatsApp, Facebook, LinkedIn previews)', '1200 × 630 px. Shown when someone shares the portal link.')}
+    <div class="field"><label for="b-allow_indexing">Search engines</label><select id="b-allow_indexing" data-b="allow_indexing"><option value="0"${+b.allow_indexing ? '' : ' selected'}>Hide the portal from Google (recommended)</option><option value="1"${+b.allow_indexing ? ' selected' : ''}>Allow Google to list the sign-in page</option></select><span class="hint">Pages after sign-in are never indexed, whatever you choose. Candidate data is never visible to search engines.</span></div>
+    <div class="field full"><label>Search result preview</label><div class="serp"><small>${esc(S.portal_url)}</small><b id="serp-title">${esc(seoTitle)}</b><span id="serp-desc">${esc(b.seo_description || 'Add a meta description so people know what this page is.')}</span></div></div>
+    <div class="field full"><label>Link preview</label><div class="og-card">${b.og_image_url ? `<img src="${esc(b.og_image_url)}" alt="">` : '<div class="og-empty">No share image</div>'}<div><small>${esc(new URL(S.portal_url).host)}</small><b>${esc(seoTitle)}</b><span>${esc(b.seo_description)}</span></div></div></div></div></div></section>`;
+}
+function brandingDraft() { const v = Object.assign({}, S.branding); $$('[data-b]').forEach(el => v[el.dataset.b] = el.value); return v; }
+function previewBranding() {
+  const v = brandingDraft(), r = document.documentElement.style, m = v.color_main, a = v.color_accent, bg = v.color_bg, t = v.color_text;
+  const set = { '--ink': m, '--ink-2': `color-mix(in srgb,${m} 84%,#fff)`, '--brass': a, '--brass-soft': `color-mix(in srgb,${a} 18%,#fff)`, '--brass-fg': `color-mix(in srgb,${a} 62%,#000)`, '--bg': bg, '--surface': `color-mix(in srgb,${bg} 25%,#fff)`, '--surface-2': `color-mix(in srgb,${bg} 92%,${t})`, '--line': `color-mix(in srgb,${bg} 82%,${t})`, '--fg': t, '--mute': `color-mix(in srgb,${t} 62%,${bg})`, '--f-display': `"${v.heading_font}", Georgia, serif`, '--f-body': `"${v.body_font}", system-ui, sans-serif` };
+  if (!document.documentElement.matches('[data-theme=dark]') && !matchMedia('(prefers-color-scheme: dark)').matches) Object.entries(set).forEach(([k, x]) => r.setProperty(k, x));
+  const fl = document.getElementById('prr-font-preview') || Object.assign(document.head.appendChild(document.createElement('link')), { id: 'prr-font-preview', rel: 'stylesheet' });
+  fl.href = 'https://fonts.googleapis.com/css2?family=' + [v.heading_font, v.body_font].filter(f => f !== 'System').map(f => f.replace(/ /g, '+') + ':wght@400;500;600;700').join('&family=') + '&display=swap';
+  const bt = $('#brand b'); if (bt) bt.textContent = v.portal_title; const bs = $('#brand small'); if (bs) bs.textContent = v.portal_subtitle;
+  const st = (v.seo_title || '{title}').replace('{title}', v.portal_title); if ($('#serp-title')) { $('#serp-title').textContent = st; $('#serp-desc').textContent = v.seo_description || 'Add a meta description so people know what this page is.'; $('#desc-count').textContent = v.seo_description.length + ' / 160 characters recommended'; }
+}
+function resetPreview() { const r = document.documentElement.style; ['--ink', '--ink-2', '--brass', '--brass-soft', '--brass-fg', '--bg', '--surface', '--surface-2', '--line', '--fg', '--mute', '--f-display', '--f-body'].forEach(k => r.removeProperty(k)); }
+
 function listEditor(key, title, leadFlags) {
   const list = S[key];
   return `<section class="panel" data-list="${key}"><div class="panel-h"><h2>${esc(title)}</h2><span class="actions"><button class="btn sm" data-act="list-add" data-key="${key}">+ Add</button><button class="btn primary sm" data-act="list-save" data-key="${key}">Save</button></span></div><div class="panel-b" style="display:flex;flex-direction:column;gap:8px">
@@ -447,6 +490,10 @@ function templateEditor(key, title, isEmail) {
 }
 VIEWS.settings.after = () => {
   $$('[data-stab]').forEach(b => b.onclick = () => { state.settingsTab = b.dataset.stab; rerender(); });
+  $$('[data-b]').forEach(el => el.oninput = el.onchange = () => { if (el.type === 'color') { const h = $(`[data-hex="${el.dataset.b}"]`); if (h) h.value = el.value; } previewBranding(); });
+  $$('[data-hex]').forEach(el => el.onchange = () => { if (/^#[0-9a-f]{6}$/i.test(el.value)) { $(`[data-b="${el.dataset.hex}"]`).value = el.value; previewBranding(); } else toast('Use a colour like #5a1424.', true); });
+  $$('[data-upload]').forEach(inp => inp.onchange = async () => { const f = inp.files[0]; if (!f) return; const fd = new FormData(); fd.append('file', f); fd.append('kind', inp.dataset.upload);
+    try { toast('Uploading…'); const r = await api('POST', '/branding/upload', fd); S.branding = Object.assign(brandingDraft(), { [inp.dataset.upload]: r.url }); await saveSettings('branding', S.branding, 'Image uploaded and saved.'); } catch (e) { fail(e); } });
   $$('[data-role]').forEach(s => s.onchange = async () => { try { P.team = await api('PATCH', '/team/' + s.dataset.role, { role: s.value }); toast('Role updated.'); } catch (e) { fail(e); } });
 };
 async function saveSettings(section, value, msg = 'Settings saved.') {
@@ -772,6 +819,10 @@ view.addEventListener('click', async e => {
       case 'list-save': { const v = {}; $$(`[data-list="${b.dataset.key}"] .list-edit`).forEach(r => { const o = { color: r.querySelector('input[type=color]').value }; r.querySelectorAll('[data-k]').forEach(i => o[i.dataset.k] = i.type === 'checkbox' ? (i.checked ? 1 : 0) : i.value.trim()); if (o.label) v[r.dataset.row] = o; }); return saveSettings(b.dataset.key, v, 'Statuses saved.'); }
       case 'tpl-save': { const v = {}; $$(`[data-tpl="${b.dataset.key}"] [data-trow]`).forEach(r => { const o = {}; r.querySelectorAll('[data-t]').forEach(i => o[i.dataset.t] = i.dataset.t === 'params' ? i.value.split(',').map(x => x.trim()).filter(Boolean) : i.value); v[r.dataset.trow] = o; }); return saveSettings(b.dataset.key, v, 'Templates saved.'); }
       case 'save-wa': { const v = {}; $$('[data-w]').forEach(el => v[el.dataset.w] = el.value.trim()); return saveSettings('whatsapp', v, 'WhatsApp settings saved.'); }
+      case 'preset': { const p = PRESETS[+b.dataset.i][1]; Object.entries(p).forEach(([k, x]) => { const el = $(`[data-b="${k}"]`); if (el) el.value = x; const h = $(`[data-hex="${k}"]`); if (h) h.value = x; }); return previewBranding(); }
+      case 'brand-reset': resetPreview(); return rerender();
+      case 'img-clear': { S.branding = Object.assign(brandingDraft(), { [b.dataset.k]: '' }); return saveSettings('branding', S.branding, 'Image removed.'); }
+      case 'save-brand': { const v = brandingDraft(); await saveSettings('branding', v, 'Branding saved. Reloading to apply it everywhere…'); setTimeout(() => location.reload(), 900); return; }
       case 'save-intake': return saveSettings('intake', { cf7_applicant: $('#in-cf7a').value.trim(), cf7_employer: $('#in-cf7e').value.trim(), send_ack: $('#in-ack').value }, 'Website form settings saved.');
       case 'regen-token': if (await confirmBox('Create a new token? Any form tool using the old one stops working until you update it.', 'Create new token', true)) saveSettings('intake', { regenerate_token: 1 }, 'New token created.'); return;
       case 'retry': { const r = await api('POST', `/intake-log/${id}/retry`); toast('Saved to the CRM.'); return go((r.form === 'employer' ? 'lead-' : 'applicant-') + r.object_id); }

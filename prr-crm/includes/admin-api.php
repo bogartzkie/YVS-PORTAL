@@ -20,6 +20,7 @@ function prr_bootstrap() {
         'call_outcomes' => prr_call_outcomes(), 'applicant_sources' => prr_applicant_sources(), 'lead_sources' => prr_lead_sources(),
         'team' => prr_team(), 'whatsapp' => array( 'mode' => $wa['mode'], 'business_number' => $wa['business_number'], 'default_cc' => $wa['default_cc'] ),
         'today' => current_time( 'Y-m-d' ),
+        'branding' => array_intersect_key( prr_get_branding(), array_flip( array( 'portal_title', 'portal_subtitle', 'logo_url' ) ) ),
         'intake_url' => rest_url( PRR_API_NS . '/intake/webhook' ),
     );
 }
@@ -59,11 +60,20 @@ function prr_api_settings_get() {
         'wa_templates' => prr_wa_templates(), 'whatsapp' => $wa, 'intake' => prr_intake_settings() + array( 'webhook_url' => rest_url( PRR_API_NS . '/intake/webhook' ) ),
         'privilege_defs' => $privs, 'privileges' => prr_get_privileges(), 'roles' => prr_role_labels(),
         'private_dir_protected' => prr_private_dir_protected(),
+        'branding' => prr_get_branding(), 'fonts' => array_map( 'array_keys', prr_font_choices() ),
+        'portal_url' => home_url( '/' . PRR_PORTAL_SLUG . '/' ), 'site_icon' => get_site_icon_url( 64 ),
     ) );
 }
 
 /** Quick self-check: is the private folder blocked from direct web access? */
 function prr_private_dir_protected() {
+    $cached = get_transient( 'prr_private_probe' );
+    if ( $cached !== false ) return $cached === 'unknown' ? null : $cached === 'yes';
+    $res = prr_private_dir_probe();
+    set_transient( 'prr_private_probe', $res === null ? 'unknown' : ( $res ? 'yes' : 'no' ), 12 * HOUR_IN_SECONDS );
+    return $res;
+}
+function prr_private_dir_probe() {
     $dir = prr_ensure_private_dir();
     $probe = $dir . '/prr-probe.txt';
     if ( ! file_exists( $probe ) ) @file_put_contents( $probe, 'probe' );
@@ -121,6 +131,8 @@ function prr_api_settings_save( WP_REST_Request $r ) {
             if ( isset( $v['field_map'] ) ) { $s['field_map'] = array(); foreach ( (array) $v['field_map'] as $from => $to ) if ( $from !== '' ) $s['field_map'][ sanitize_text_field( $from ) ] = sanitize_key( $to ); }
             if ( ! empty( $v['regenerate_token'] ) ) $s['token'] = wp_generate_password( 32, false );
             update_option( 'prr_intake', $s ); break;
+        case 'branding':
+            prr_sanitize_branding( (array) $v ); break;
         case 'privileges':
             $out = array();
             foreach ( prr_get_privilege_definitions() as $def ) foreach ( array( 'prr_admin', 'prr_manager', 'prr_recruiter' ) as $role ) {

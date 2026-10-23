@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 function prr_option_names() {
     return array( 'prr_general', 'prr_applicant_statuses', 'prr_lead_statuses', 'prr_submission_statuses',
-        'prr_doc_types', 'prr_email_templates', 'prr_wa_templates', 'prr_privileges', 'prr_whatsapp', 'prr_intake' );
+        'prr_doc_types', 'prr_email_templates', 'prr_wa_templates', 'prr_privileges', 'prr_whatsapp', 'prr_intake', 'prr_branding' );
 }
 
 /* ── General ─────────────────────────────────────────────── */
@@ -24,9 +24,6 @@ function prr_general_defaults() {
         'expiry_warn_days'    => 90,  // passport / visa / contract expiry reminder
         'recruiter_sees_all'  => 1,   // 0 = recruiters only see records assigned to them
         'delete_on_uninstall' => 0,
-        'brand_dark'          => '#5a1424', // sidebar, primary buttons (match the website's main dark colour)
-        'brand_accent'        => '#b8923f', // highlights, logo badge, call-to-action buttons
-        'logo_url'            => '',
     );
 }
 function prr_get_general() {

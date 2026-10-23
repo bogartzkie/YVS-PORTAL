@@ -35,6 +35,7 @@ $prr_files = array(
     'intake',     // website forms → CRM
     'reports',
     'admin-api',  // settings, team, audit, intake log
+    'branding',   // colours, title, logo, SEO
     'page',       // /prr-portal route, login, portal shell
 );
 foreach ( $prr_files as $f ) {
